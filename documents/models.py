@@ -2,8 +2,14 @@
 from django.db import models
 from django.utils import timezone
 from django.urls import reverse
+from django.conf import settings
 
 class Document(models.Model):
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='documents'
+    )
     STATUS_CHOICES = [
         ('DRAFT', 'Draft'),
         ('IN_REVIEW', 'In Review'),
@@ -24,6 +30,20 @@ class Document(models.Model):
 
     def get_absolute_url(self):
         return reverse('document_detail', kwargs={'pk': self.pk})
+    
+    def get_latest_version(self):
+        return self.versions.first()
+
+    def create_new_version(self, file, notes=''):
+        version = DocumentVersion.objects.create(
+            document=self,
+            file=file,
+            version_number=self.version + 1,
+            notes=notes
+        )
+        self.version = version.version_number
+        self.save()
+        return version
 
 class DocumentVersion(models.Model):
     document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name='versions')
