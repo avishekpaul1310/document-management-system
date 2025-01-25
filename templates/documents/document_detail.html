@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-8">
+        <h2>{{ document.title }}</h2>
+    </div>
+    <div class="col-md-4 text-end">
+        <a href="{% url 'document_update' document.pk %}" class="btn btn-primary">Edit</a>
+        <a href="{% url 'document_delete' document.pk %}" class="btn btn-danger">Delete</a>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <h5>Document Details</h5>
+                <p>{{ document.description }}</p>
+                <p><strong>Status:</strong> 
+                    <span class="badge bg-{% if document.status == 'DRAFT' %}secondary{% elif document.status == 'IN_REVIEW' %}warning{% else %}success{% endif %}">
+                        {{ document.get_status_display }}
+                    </span>
+                </p>
+                <p><strong>Tags:</strong> 
+                    {% for tag in document.tags.split %} 
+                        <span class="badge bg-info">{{ tag }}</span>
+                    {% endfor %}
+                </p>
+                <p><strong>Current Version:</strong> v{{ document.version }}</p>
+            </div>
+            <div class="col-md-4">
+                <div class="text-end">
+                    <p><small>Created: {{ document.created_at|date:"M d, Y H:i" }}</small></p>
+                    <p><small>Last Updated: {{ document.updated_at|date:"M d, Y H:i" }}</small></p>
+                    <a href="{{ document.file.url }}" class="btn btn-success" download>
+                        Download Current Version
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Version History</h5>
+        <a href="{% url 'add_version' document.pk %}" class="btn btn-primary btn-sm">Add New Version</a>
+    </div>
+    <div class="card-body">
+        {% if versions %}
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Version</th>
+                            <th>Created</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for version in versions %}
+                            <tr>
+                                <td>v{{ version.version_number }}</td>
+                                <td>{{ version.created_at|date:"M d, Y H:i" }}</td>
+                                <td>{{ version.notes|default:"No notes" }}</td>
+                                <td>
+                                    <a href="{{ version.file.url }}" class="btn btn-sm btn-outline-primary" download>
+                                        Download
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted">No version history available.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
