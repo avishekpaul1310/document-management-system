@@ -1,3 +1,39 @@
+# documents/models.py
 from django.db import models
+from django.utils import timezone
+from django.urls import reverse
 
-# Create your models here.
+class Document(models.Model):
+    STATUS_CHOICES = [
+        ('DRAFT', 'Draft'),
+        ('IN_REVIEW', 'In Review'),
+        ('FINAL', 'Final'),
+    ]
+    
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    file = models.FileField(upload_to='documents/')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='DRAFT')
+    tags = models.CharField(max_length=200, blank=True, help_text='Comma separated tags')
+    version = models.IntegerField(default=1)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title
+
+    def get_absolute_url(self):
+        return reverse('document_detail', kwargs={'pk': self.pk})
+
+class DocumentVersion(models.Model):
+    document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name='versions')
+    file = models.FileField(upload_to='document_versions/')
+    version_number = models.IntegerField()
+    created_at = models.DateTimeField(default=timezone.now)
+    notes = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ['-version_number']
+
+    def __str__(self):
+        return f"{self.document.title} - v{self.version_number}"
