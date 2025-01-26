@@ -155,3 +155,43 @@ class DocumentManagementTestCase(TestCase):
                 
         # Delete test data
         self.user.delete()  # This will cascade delete related objects
+
+        # documents/tests.py
+    def test_document_versioning(self):
+     """Test document version control functionality"""
+    # Create a new version of the document
+    new_version_file = SimpleUploadedFile(
+        "version2.txt",
+        b"This is version 2 content",
+        content_type="text/plain"
+    )
+    
+    response = self.client.post(
+        reverse('document_version_create', kwargs={'pk': self.document.pk}),
+        {
+            'file': new_version_file,
+            'notes': 'Updated content for version 2'
+        }
+    )
+    
+    # Check if redirect was successful
+    self.assertEqual(response.status_code, 302)
+    
+    # Refresh document from database
+    self.document.refresh_from_db()
+    
+    # Check if version number was incremented
+    self.assertEqual(self.document.version, 2)
+    
+    # Check if version was created
+    self.assertTrue(
+        self.document.versions.filter(version_number=2).exists()
+    )
+    
+    # Test version listing
+    response = self.client.get(
+        reverse('document_versions', kwargs={'pk': self.document.pk})
+    )
+    self.assertEqual(response.status_code, 200)
+    self.assertContains(response, 'version2.txt')
+    self.assertContains(response, 'Updated content for version 2')

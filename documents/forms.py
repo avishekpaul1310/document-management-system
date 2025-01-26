@@ -89,7 +89,11 @@ class DocumentVersionForm(forms.ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Enter version notes (optional)'
             }),
-            'file': forms.FileInput(attrs={'class': 'form-control'})
+            
+            'file': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': '.pdf,.doc,.docx,.txt'
+            }),
         }
 
     def clean_file(self):
@@ -97,4 +101,8 @@ class DocumentVersionForm(forms.ModelForm):
         if file:
             if file.size > self.MAX_FILE_SIZE:
                 raise ValidationError('File size must be under 5MB.')
+            # Check file extension
+            ext = os.path.splitext(file.name)[1].lower()
+            if ext not in ['.pdf', '.doc', '.docx', '.txt']:
+                raise ValidationError('Only PDF, DOC, DOCX, and TXT files are allowed.')
         return file

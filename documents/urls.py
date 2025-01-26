@@ -17,4 +17,10 @@ urlpatterns = [
     path('categories/new/', views.CategoryCreateView.as_view(), name='category_create'),
     path('categories/<int:pk>/edit/', views.CategoryUpdateView.as_view(), name='category_update'),
     path('categories/<int:pk>/delete/', views.CategoryDeleteView.as_view(), name='category_delete'),
+    path('document/<int:pk>/version/new/', 
+         views.DocumentVersionCreateView.as_view(), 
+         name='document_version_create'),
+    path('document/<int:pk>/versions/', 
+         views.DocumentVersionListView.as_view(), 
+         name='document_versions'),
 ]
