@@ -31,7 +31,7 @@ class DocumentForm(forms.ModelForm):
 
     class Meta:
         model = Document
-        fields = ['title', 'description', 'file', 'status', 'tags']
+        fields = ['title', 'description', 'file', 'category', 'status', 'tags']
         widgets = {
             'description': forms.Textarea(attrs={
                 'rows': 4,
