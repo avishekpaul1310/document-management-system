@@ -5,11 +5,12 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy, reverse
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import FileResponse
 from django.utils.decorators import method_decorator
-from .models import Document, DocumentVersion
-from .forms import DocumentForm, DocumentVersionForm
+from .models import Document, DocumentVersion,Category
+from .forms import DocumentForm, DocumentVersionForm, CategoryForm
 from .decorators import user_is_document_owner
+import os
 
 class DocumentListView(LoginRequiredMixin, ListView):
     model = Document
@@ -17,7 +18,7 @@ class DocumentListView(LoginRequiredMixin, ListView):
     context_object_name = 'documents'
     paginate_by = 10
     ordering = ['-updated_at']
-    
+
     def get_queryset(self):
         queryset = Document.objects.filter(owner=self.request.user)
         query = self.request.GET.get('q')
@@ -41,11 +42,11 @@ class DocumentListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        context['categories'] = Category.objects.filter(owner=self.request.user)
+        context['current_category'] = self.request.GET.get('category')
         context['current_search'] = self.request.GET.get('q', '')
         context['current_status'] = self.request.GET.get('status', 'ALL')
         context['status_choices'] = Document.STATUS_CHOICES
-        context['categories'] = Category.objects.filter(owner=self.request.user)
-        context['current_category'] = self.request.GET.get('category')
         return context
 
 class DocumentDetailView(LoginRequiredMixin, DetailView):
@@ -80,6 +81,12 @@ class DocumentCreateView(LoginRequiredMixin, CreateView):
         context['button_text'] = 'Create Document'
         return context
 
+    # Add this method here
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
 class DocumentUpdateView(LoginRequiredMixin, UpdateView):
     model = Document
     form_class = DocumentForm
@@ -98,6 +105,12 @@ class DocumentUpdateView(LoginRequiredMixin, UpdateView):
         context['title'] = 'Edit Document'
         context['button_text'] = 'Update Document'
         return context
+
+    # Add this method here
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
 
 class DocumentDeleteView(LoginRequiredMixin, DeleteView):
     model = Document
@@ -180,6 +193,9 @@ class CategoryUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_queryset(self):
         return Category.objects.filter(owner=self.request.user)
+    def form_valid(self, form):
+        messages.success(self.request, 'Category updated successfully!')
+        return super().form_valid(form)
 
 class CategoryDeleteView(LoginRequiredMixin, DeleteView):
     model = Category
