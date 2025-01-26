@@ -152,27 +152,47 @@ class DocumentManagementTestCase(TestCase):
         self.assertEqual(category.name, 'Updated Category')
 
     def test_file_validation(self):
-        """Test file validation"""
-        # Test file size validation
-        large_file = SimpleUploadedFile(
-            "large_file.txt",
-            b"x" * (6 * 1024 * 1024),  # 6MB file (larger than 5MB limit)
-            content_type="text/plain"
-        )
-        
-        response = self.client.post(
-            reverse('document_create'),
-            {
-                'title': 'Large File Test',
-                'description': 'Testing file size validation',
-                'file': large_file,
-                'category': self.category.id,
-                'status': 'DRAFT'
-            }
-        )
-        
-        self.assertEqual(response.status_code, 200)  # Should return to form
-        self.assertFalse(Document.objects.filter(title='Large File Test').exists())
+     """Test file validation"""
+    # Test file size validation
+    large_file = SimpleUploadedFile(
+        "large_file.txt",
+        b"x" * (6 * 1024 * 1024),  # 6MB file (larger than 5MB limit)
+        content_type="text/plain"
+    )
+    
+    form_data = {
+        'title': 'Large File Test',
+        'description': 'Testing file size validation',
+        'category': self.category.id,
+        'status': 'DRAFT',
+        'tags': 'test,validation'
+    }
+    
+    response = self.client.post(
+        reverse('document_create'),
+        data={**form_data, 'file': large_file},
+        follow=True  # Follow redirects
+    )
+    
+    # Check that the form was invalid
+    self.assertFalse(Document.objects.filter(title='Large File Test').exists())
+    self.assertContains(response, 'File size must be under 5MB')
+
+    # Test invalid file type
+    invalid_file = SimpleUploadedFile(
+        "test.exe",
+        b"Invalid file content",
+        content_type="application/x-msdownload"
+    )
+    
+    response = self.client.post(
+        reverse('document_create'),
+        data={**form_data, 'file': invalid_file},
+        follow=True
+    )
+    
+    self.assertFalse(Document.objects.filter(title='Large File Test').exists())
+    self.assertContains(response, 'Only the following file types are allowed')
 
     def tearDown(self):
         # Clean up uploaded files
