@@ -1,8 +1,8 @@
+# documents/forms.py
 from django import forms
 from django.core.exceptions import ValidationError
 from .models import Document, DocumentVersion, Category
 import os
-import magic
 
 class CategoryForm(forms.ModelForm):
     class Meta:
@@ -22,12 +22,7 @@ class CategoryForm(forms.ModelForm):
 
 class DocumentForm(forms.ModelForm):
     MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
-    ALLOWED_TYPES = {
-        'application/pdf': '.pdf',
-        'application/msword': '.doc',
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
-        'text/plain': '.txt'
-    }
+    ALLOWED_EXTENSIONS = ['.pdf', '.doc', '.docx', '.txt']
 
     class Meta:
         model = Document
@@ -48,18 +43,16 @@ class DocumentForm(forms.ModelForm):
             }),
             'status': forms.Select(attrs={'class': 'form-select'}),
             'file': forms.FileInput(attrs={'class': 'form-control'}),
-            
             'category': forms.Select(attrs={
                 'class': 'form-select'
             })
-            
         }
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
         if user:
-            self.fields['category'].queryset = Category.objects.filter(owner=user)   
+            self.fields['category'].queryset = Category.objects.filter(owner=user)
 
     def clean_file(self):
         file = self.cleaned_data.get('file')
@@ -68,16 +61,12 @@ class DocumentForm(forms.ModelForm):
             if file.size > self.MAX_FILE_SIZE:
                 raise ValidationError('File size must be under 5MB.')
 
-            # Check file type
-            try:
-                mime = magic.from_buffer(file.read(1024), mime=True)
-                file.seek(0)  # Reset file pointer
-                
-                if mime not in self.ALLOWED_TYPES:
-                    allowed_extensions = ', '.join(self.ALLOWED_TYPES.values())
-                    raise ValidationError(f'Only the following file types are allowed: {allowed_extensions}')
-            except IOError:
-                raise ValidationError('Error reading file. Please try again.')
+            # Check file extension
+            ext = os.path.splitext(file.name)[1].lower()
+            if ext not in self.ALLOWED_EXTENSIONS:
+                raise ValidationError(
+                    f'Only the following file types are allowed: {", ".join(self.ALLOWED_EXTENSIONS)}'
+                )
 
         return file
 
