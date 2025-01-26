@@ -35,6 +35,10 @@
                             <a class="nav-link {% if request.resolver_match.url_name == 'document_create' %}active{% endif %}" 
                                href="{% url 'document_create' %}">
                                 <i class="fas fa-upload me-1"></i>Upload
+                        <li class="nav-item">
+                            <a class="nav-link {% if request.resolver_match.url_name == 'category_list' %}active{% endif %}" 
+                               href="{% url 'category_list' %}">
+                                <i class="fas fa-folder"></i> Categories        
                             </a>
                         </li>
                     </ul>

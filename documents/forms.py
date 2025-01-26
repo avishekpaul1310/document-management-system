@@ -1,8 +1,24 @@
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import Document, DocumentVersion
+from .models import Document, DocumentVersion, Category
 import os
 import magic
+
+class CategoryForm(forms.ModelForm):
+    class Meta:
+        model = Category
+        fields = ['name', 'description']
+        widgets = {
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter category name'
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Enter category description'
+            })
+        }
 
 class DocumentForm(forms.ModelForm):
     MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
@@ -31,8 +47,19 @@ class DocumentForm(forms.ModelForm):
                 'placeholder': 'Enter tags separated by commas'
             }),
             'status': forms.Select(attrs={'class': 'form-select'}),
-            'file': forms.FileInput(attrs={'class': 'form-control'})
+            'file': forms.FileInput(attrs={'class': 'form-control'}),
+            
+            'category': forms.Select(attrs={
+                'class': 'form-select'
+            })
+            
         }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields['category'].queryset = Category.objects.filter(owner=user)   
 
     def clean_file(self):
         file = self.cleaned_data.get('file')

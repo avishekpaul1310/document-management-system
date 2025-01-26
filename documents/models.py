@@ -4,6 +4,40 @@ from django.utils import timezone
 from django.urls import reverse
 from django.conf import settings
 
+class Category(models.Model):
+    name = models.CharField(max_length=100)
+    description = models.TextField(blank=True)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE,
+        related_name='categories'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = "categories"
+        ordering = ['name']
+        unique_together = ['name', 'owner']  # Prevent duplicate category names per user
+
+    def __str__(self):
+        return self.name
+
+    def get_absolute_url(self):
+        return reverse('category_detail', kwargs={'pk': self.pk})
+
+# Update Document model to include category
+class Document(models.Model):
+    # Add category field to existing model
+    category = models.ForeignKey(
+        Category, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='documents'
+    )
+
+
 class Document(models.Model):
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,

@@ -9,4 +9,8 @@ urlpatterns = [
     path('document/<int:pk>/edit/', views.DocumentUpdateView.as_view(), name='document_update'),
     path('document/<int:pk>/delete/', views.DocumentDeleteView.as_view(), name='document_delete'),
     path('document/<int:pk>/add-version/', views.add_version, name='add_version'),
+    path('categories/', views.CategoryListView.as_view(), name='category_list'),
+    path('categories/new/', views.CategoryCreateView.as_view(), name='category_create'),
+    path('categories/<int:pk>/edit/', views.CategoryUpdateView.as_view(), name='category_update'),
+    path('categories/<int:pk>/delete/', views.CategoryDeleteView.as_view(), name='category_delete'),
 ]

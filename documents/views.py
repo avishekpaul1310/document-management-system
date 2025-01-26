@@ -17,10 +17,11 @@ class DocumentListView(LoginRequiredMixin, ListView):
     context_object_name = 'documents'
     paginate_by = 10
     ordering = ['-updated_at']
-
+    
     def get_queryset(self):
         queryset = Document.objects.filter(owner=self.request.user)
         query = self.request.GET.get('q')
+        category_id = self.request.GET.get('category')
         status_filter = self.request.GET.get('status')
         
         if query:
@@ -30,6 +31,9 @@ class DocumentListView(LoginRequiredMixin, ListView):
                 Q(tags__icontains=query)
             )
         
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+            
         if status_filter and status_filter != 'ALL':
             queryset = queryset.filter(status=status_filter)
             
@@ -40,6 +44,8 @@ class DocumentListView(LoginRequiredMixin, ListView):
         context['current_search'] = self.request.GET.get('q', '')
         context['current_status'] = self.request.GET.get('status', 'ALL')
         context['status_choices'] = Document.STATUS_CHOICES
+        context['categories'] = Category.objects.filter(owner=self.request.user)
+        context['current_category'] = self.request.GET.get('category')
         return context
 
 class DocumentDetailView(LoginRequiredMixin, DetailView):
@@ -138,3 +144,51 @@ def download_version(request, pk, version_number):
     response = FileResponse(version.file, as_attachment=True)
     response['Content-Disposition'] = f'attachment; filename="{document.title}_v{version_number}{os.path.splitext(version.file.name)[1]}"'
     return response
+
+class CategoryListView(LoginRequiredMixin, ListView):
+    model = Category
+    template_name = 'documents/category_list.html'
+    context_object_name = 'categories'
+
+    def get_queryset(self):
+        return Category.objects.filter(owner=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add document count for each category
+        categories = context['categories']
+        for category in categories:
+            category.doc_count = category.documents.count()
+        return context
+
+class CategoryCreateView(LoginRequiredMixin, CreateView):
+    model = Category
+    form_class = CategoryForm
+    template_name = 'documents/category_form.html'
+    success_url = reverse_lazy('category_list')
+
+    def form_valid(self, form):
+        form.instance.owner = self.request.user
+        messages.success(self.request, 'Category created successfully!')
+        return super().form_valid(form)
+
+class CategoryUpdateView(LoginRequiredMixin, UpdateView):
+    model = Category
+    form_class = CategoryForm
+    template_name = 'documents/category_form.html'
+    success_url = reverse_lazy('category_list')
+
+    def get_queryset(self):
+        return Category.objects.filter(owner=self.request.user)
+
+class CategoryDeleteView(LoginRequiredMixin, DeleteView):
+    model = Category
+    template_name = 'documents/category_confirm_delete.html'
+    success_url = reverse_lazy('category_list')
+
+    def get_queryset(self):
+        return Category.objects.filter(owner=self.request.user)
+
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Category deleted successfully!')
+        return super().delete(request, *args, **kwargs)
