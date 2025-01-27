@@ -1,0 +1,81 @@
+<!-- templates/documents/shared_document_list.html -->
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Shared Documents</h2>
+    
+    <div class="row mt-4">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Shared by Me</h5>
+                </div>
+                <div class="card-body">
+                    {% if shared_by_me %}
+                        <div class="list-group">
+                            {% for share in shared_by_me %}
+                                <div class="list-group-item">
+                                    <h6>{{ share.document.title }}</h6>
+                                    <p class="mb-1">Shared with: {{ share.shared_with.username }}</p>
+                                    <p class="mb-1">Permission: {{ share.get_permission_display }}</p>
+                                    <small class="text-muted">Shared on: {{ share.shared_at|date:"M d, Y" }}</small>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p>You haven't shared any documents yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Shared with Me</h5>
+                </div>
+                <div class="card-body">
+                    {% if shared_with_me %}
+                        <div class="list-group">
+                            {% for share in shared_with_me %}
+                                <div class="list-group-item">
+                                    <h6>{{ share.document.title }}</h6>
+                                    <p class="mb-1">Shared by: {{ share.shared_by.username }}</p>
+                                    <p class="mb-1">Permission: {{ share.get_permission_display }}</p>
+                                    <small class="text-muted">Shared on: {{ share.shared_at|date:"M d, Y" }}</small>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p>No documents have been shared with you yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+<!-- templates/documents/share_document.html -->
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Share Document</h2>
+    <h4 class="text-muted">{{ document.title }}</h4>
+
+    <div class="card mt-4">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <button type="submit" class="btn btn-primary">Share Document</button>
+                <a href="{% url 'document_detail' document.pk %}" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
