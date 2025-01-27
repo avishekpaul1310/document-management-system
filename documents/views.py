@@ -291,11 +291,16 @@ class DocumentSearchView(LoginRequiredMixin, ListView):
             # Text search
             query = form.cleaned_data.get('query')
             if query:
-                queryset = queryset.filter(
-                    Q(title__icontains=query) |
-                    Q(description__icontains=query) |
-                    Q(tags__icontains=query)
-                )
+                search_query = Q()
+                # Split the query into words for better matching
+                query_words = query.split()
+                for word in query_words:
+                    search_query |= (
+                        Q(title__icontains=word) |
+                        Q(description__icontains=word) |
+                        Q(tags__icontains=word)
+                    )
+                queryset = queryset.filter(search_query)
 
             # Category filter
             category = form.cleaned_data.get('category')
@@ -326,7 +331,7 @@ class DocumentSearchView(LoginRequiredMixin, ListView):
                 queryset = queryset.filter(created_at__date__lte=date_to)
 
             # Sorting
-            sort_by = form.cleaned_data.get('sort_by')
+            sort_by = form.cleaned_data.get('sort_by', '-updated_at')
             if sort_by:
                 queryset = queryset.order_by(sort_by)
 
