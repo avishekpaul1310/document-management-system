@@ -1,8 +1,11 @@
 # documents/forms.py
 from django import forms
 from django.core.exceptions import ValidationError
-from .models import Document, DocumentVersion, Category
+from .models import Document, DocumentVersion, Category, SharedDocument, DocumentPermission
+from django.contrib.auth import get_user_model
 import os
+
+User = get_user_model()
 
 class CategoryForm(forms.ModelForm):
     class Meta:
@@ -217,3 +220,34 @@ class AdvancedSearchForm(forms.Form):
         super().__init__(*args, **kwargs)
         # Set category queryset to user's categories
         self.fields['category'].queryset = Category.objects.filter(owner=user)
+
+class ShareDocumentForm(forms.ModelForm):
+    class Meta:
+        model = SharedDocument
+        fields = ['shared_with', 'permission', 'valid_until']
+        widgets = {
+            'valid_until': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.document = kwargs.pop('document')
+        self.user = kwargs.pop('user')
+        super().__init__(*args, **kwargs)
+        
+        # Exclude document owner and already shared users from the choices
+        exclude_users = [self.document.owner]
+        exclude_users.extend(
+            self.document.shared_users.values_list('id', flat=True)
+        )
+        self.fields['shared_with'].queryset = User.objects.exclude(
+            id__in=exclude_users
+        )
+
+        # Set permission choices based on user's permission level
+        if self.user != self.document.owner:
+            user_permission = self.document.get_user_permission(self.user)
+            if user_permission != DocumentPermission.MANAGE:
+                self.fields['permission'].choices = [
+                    (p.value, p.label) for p in DocumentPermission 
+                    if DocumentPermission(p.value).value <= user_permission
+                ]

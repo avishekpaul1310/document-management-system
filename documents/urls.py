@@ -1,6 +1,7 @@
 # documents/urls.py
 from django.urls import path
 from . import views
+from .views.sharing import SharedDocumentListView, ShareDocumentView
 
 urlpatterns = [
     # Existing document URLs
@@ -33,4 +34,6 @@ urlpatterns = [
          views.DocumentVersionListView.as_view(), 
          name='document_versions'),
     path('search/', views.DocumentSearchView.as_view(), name='document_search'),
+    path('shared/', SharedDocumentListView.as_view(), name='shared_documents'),
+    path('document/<int:pk>/share/', ShareDocumentView.as_view(), name='share_document'),
 ]
