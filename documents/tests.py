@@ -5,6 +5,8 @@ from django.urls import reverse
 from django.core.files.uploadedfile import SimpleUploadedFile
 from .models import Document, Category, DocumentVersion
 import os
+from .models import Document, Category
+from django.utils import timezone
 
 class DocumentManagementTestCase(TestCase):
     def setUp(self):
@@ -213,3 +215,78 @@ class DocumentManagementTestCase(TestCase):
                 
         # Delete test data
         self.user.delete()  # This will cascade delete related objects
+
+class DocumentSearchTestCase(TestCase):
+    def setUp(self):
+        # Create a test user
+        self.user = get_user_model().objects.create_user(
+            username='testuser',
+            password='testpass123'
+        )
+        self.client.login(username='testuser', password='testpass123')
+
+        # Create test category
+        self.category = Category.objects.create(
+            name='Test Category',
+            owner=self.user
+        )
+
+        # Create test documents
+        self.doc1 = Document.objects.create(
+            title='Test Document 1',
+            description='This is a test document',
+            owner=self.user,
+            category=self.category,
+            tags='test,document,first',
+            status='DRAFT'
+        )
+        self.doc2 = Document.objects.create(
+            title='Another Document',
+            description='This is another test document',
+            owner=self.user,
+            tags='test,second',
+            status='FINAL'
+        )
+
+    def test_search_view_accessible(self):
+        """Test that search view is accessible"""
+        response = self.client.get(reverse('document_search'))
+        self.assertEqual(response.status_code, 200)
+        self.assertTemplateUsed(response, 'documents/document_search.html')
+
+    def test_search_by_title(self):
+        """Test searching documents by title"""
+        response = self.client.get(reverse('document_search'), {'query': 'Test Document'})
+        self.assertContains(response, 'Test Document 1')
+        self.assertNotContains(response, 'Another Document')
+
+    def test_filter_by_category(self):
+        """Test filtering documents by category"""
+        response = self.client.get(reverse('document_search'), 
+                                 {'category': self.category.id})
+        self.assertContains(response, 'Test Document 1')
+        self.assertNotContains(response, 'Another Document')
+
+    def test_filter_by_status(self):
+        """Test filtering documents by status"""
+        response = self.client.get(reverse('document_search'), 
+                                 {'status': 'FINAL'})
+        self.assertContains(response, 'Another Document')
+        self.assertNotContains(response, 'Test Document 1')
+
+    def test_search_by_tags(self):
+        """Test searching documents by tags"""
+        response = self.client.get(reverse('document_search'), 
+                                 {'tags': 'first'})
+        self.assertContains(response, 'Test Document 1')
+        self.assertNotContains(response, 'Another Document')
+
+    def test_date_range_filter(self):
+        """Test filtering documents by date range"""
+        today = timezone.now().date()
+        response = self.client.get(reverse('document_search'), {
+            'date_from': today.isoformat(),
+            'date_to': today.isoformat()
+        })
+        self.assertContains(response, 'Test Document 1')
+        self.assertContains(response, 'Another Document')

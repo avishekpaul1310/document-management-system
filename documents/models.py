@@ -91,6 +91,11 @@ class Document(models.Model):
         self.version = version.version_number
         self.save()
         return version
+    
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Update search vector after save
+        self.update_search_vector()
 
 class DocumentVersion(models.Model):
     document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name='versions')
