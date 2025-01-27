@@ -37,7 +37,7 @@ class ShareDocumentView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     
     def test_func(self):
         document = self.get_document()
-        return document.owner == self.request.user or document.can_user_access(self.request.user, 'MANAGE')
+        return document.owner == self.request.user or document.can_user_access(self.request.user, DocumentPermission.MANAGE)
     
     def get_document(self):
         return get_object_or_404(Document, pk=self.kwargs['pk'])
