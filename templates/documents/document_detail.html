@@ -231,7 +231,45 @@
                     </ul>
                 </div>
             </div>
-
+        <!-- Add this after the Timeline Card -->
+<div class="card mt-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Access History</h5>
+        {% if user == document.owner or document.can_user_access user 'MANAGE' %}
+        <a href="{% url 'document_access_logs' document.pk %}" class="btn btn-sm btn-info">
+            <i class="fas fa-history"></i> View All
+        </a>
+        {% endif %}
+    </div>
+    <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+            {% for log in document.access_logs.all|slice:":5" %}
+            <li class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <small class="text-muted">{{ log.accessed_at|date:"Y-m-d H:i:s" }}</small>
+                        <p class="mb-0">
+                            {{ log.user.username }} {{ log.get_action_display|lower }}
+                            {% if log.additional_data %}
+                            <small class="text-muted">
+                                ({{ log.additional_data|json_script:"log-data-"|safe }})
+                            </small>
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% if log.ip_address %}
+                    <small class="text-muted" title="IP Address">
+                        {{ log.ip_address }}
+                    </small>
+                    {% endif %}
+                </div>
+            </li>
+            {% empty %}
+            <li class="list-group-item text-muted">No access history available</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
             <!-- Comments Card - New Addition -->
         <div class="card mt-3">
             <div class="card-header d-flex justify-content-between align-items-center">

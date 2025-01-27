@@ -6,10 +6,11 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy, reverse
 from django.db.models import Q
 from django.http import FileResponse
-from .models import Document, DocumentVersion,Category
+from .models import Document, DocumentVersion,Category, DocumentAccessLog
 from .forms import DocumentForm, DocumentVersionForm, CategoryForm, AdvancedSearchForm
 import os
 from django.utils import timezone
+from .mixins import DocumentAccessLogMixin
 
 class DocumentListView(LoginRequiredMixin, ListView):
     model = Document
@@ -48,7 +49,7 @@ class DocumentListView(LoginRequiredMixin, ListView):
         context['status_choices'] = Document.STATUS_CHOICES
         return context
 
-class DocumentDetailView(LoginRequiredMixin, DetailView):
+class DocumentDetailView(LoginRequiredMixin, DocumentAccessLogMixin, DetailView):
     model = Document
     template_name = 'documents/document_detail.html'
     context_object_name = 'document'
@@ -56,8 +57,8 @@ class DocumentDetailView(LoginRequiredMixin, DetailView):
     def get_queryset(self):
         return Document.objects.filter(owner=self.request.user)
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def get_context_data(self, request, *args, **kwargs):
+        context = super().get_context_data(request, *args, **kwargs)
         context['versions'] = self.object.versions.all().order_by('-version_number')
         context['version_form'] = DocumentVersionForm()
         return context
@@ -85,10 +86,19 @@ class DocumentCreateView(LoginRequiredMixin, CreateView):
         kwargs = super().get_form_kwargs()
         kwargs['user'] = self.request.user
         return kwargs
+    
+class DocumentDownloadView(LoginRequiredMixin, DocumentAccessLogMixin, DetailView):
+    model = Document
 
-class DocumentUpdateView(LoginRequiredMixin, UpdateView):
+    def get(self, request, *args, **kwargs):
+        document = self.get_object()
+        self.log_access(document, 'DOWNLOAD')
+        return redirect(document.file.url)
+
+class DocumentUpdateView(LoginRequiredMixin, DocumentAccessLogMixin, UpdateView):
     model = Document
     form_class = DocumentForm
+    fields = ['title', 'description', 'category', 'status', 'tags']
     template_name = 'documents/document_form.html'
 
     def get_queryset(self):
@@ -96,6 +106,9 @@ class DocumentUpdateView(LoginRequiredMixin, UpdateView):
 
     def form_valid(self, form):
         response = super().form_valid(form)
+        self.log_access(self.object, 'EDIT', {
+            'changed_fields': form.changed_data
+        })
         messages.success(self.request, 'Document updated successfully!')
         return response
 
@@ -339,3 +352,25 @@ class DocumentSearchView(LoginRequiredMixin, ListView):
                 queryset = queryset.order_by('-updated_at')
 
         return queryset.distinct()
+    
+class DocumentAccessLogView(LoginRequiredMixin, UserPassesTestMixin, ListView):
+    model = DocumentAccessLog
+    template_name = 'documents/access_logs.html'
+    context_object_name = 'logs'
+    paginate_by = 50
+
+    def test_func(self):
+        document = Document.objects.get(pk=self.kwargs['pk'])
+        return document.can_user_access(self.request.user, DocumentPermission.MANAGE)
+
+    def get_queryset(self):
+        return DocumentAccessLog.objects.filter(
+            document_id=self.kwargs['pk']
+        ).select_related('user')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['document'] = Document.objects.get(pk=self.kwargs['pk'])
+        context['current_time'] = "2025-01-27 22:38:02"
+        context['current_user'] = "avishekpaul1310"
+        return context

@@ -42,4 +42,7 @@ urlpatterns = [
     path('search/', views.DocumentSearchView.as_view(), name='document_search'),
     path('shared/', SharedDocumentListView.as_view(), name='shared_documents'),
     path('document/<int:pk>/share/', ShareDocumentView.as_view(), name='share_document'),
+    path('document/<int:pk>/access-logs/', 
+         views.DocumentAccessLogView.as_view(), 
+         name='document_access_logs'),
 ]

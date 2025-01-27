@@ -193,3 +193,48 @@ class DocumentVersion(models.Model):
 
     def __str__(self):
         return f"{self.document.title} - v{self.version_number}"
+    
+# Add this to documents/models.py after the DocumentVersion model
+
+class DocumentAccessLog(models.Model):
+    ACTION_CHOICES = [
+        ('VIEW', 'Viewed'),
+        ('DOWNLOAD', 'Downloaded'),
+        ('EDIT', 'Edited'),
+        ('SHARE', 'Shared'),
+        ('COMMENT', 'Commented'),
+    ]
+    
+    document = models.ForeignKey(
+        Document,
+        on_delete=models.CASCADE,
+        related_name='access_logs'
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='document_access_logs'
+    )
+    action = models.CharField(
+        max_length=20,
+        choices=ACTION_CHOICES
+    )
+    accessed_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(
+        null=True,
+        blank=True
+    )
+    user_agent = models.TextField(blank=True)
+    additional_data = models.JSONField(
+        null=True,
+        blank=True,
+        help_text="Additional context about the action"
+    )
+
+    class Meta:
+        ordering = ['-accessed_at']
+        verbose_name = 'Document Access Log'
+        verbose_name_plural = 'Document Access Logs'
+
+    def __str__(self):
+        return f"{self.document.title} - {self.get_action_display()} by {self.user.username}"
