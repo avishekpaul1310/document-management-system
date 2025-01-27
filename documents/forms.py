@@ -106,3 +106,49 @@ class DocumentVersionForm(forms.ModelForm):
             if ext not in ['.pdf', '.doc', '.docx', '.txt']:
                 raise ValidationError('Only PDF, DOC, DOCX, and TXT files are allowed.')
         return file
+    
+class DocumentSearchForm(forms.Form):
+    q = forms.CharField(
+        required=False,
+        label='Search',
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Search documents...'
+        })
+    )
+    category = forms.ModelChoiceField(
+        required=False,
+        queryset=Category.objects.all(),
+        empty_label="All Categories",
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    status = forms.ChoiceField(
+        required=False,
+        choices=[('', 'All Status')] + Document.STATUS_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+    tags = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter tags (comma separated)'
+        })
+    )
+    created_after = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        })
+    )
+    created_before = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        })
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['category'].queryset = Category.objects.filter(owner=user)

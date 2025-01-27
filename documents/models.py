@@ -3,6 +3,8 @@ from django.db import models
 from django.utils import timezone
 from django.urls import reverse
 from django.conf import settings
+from django.contrib.postgres.search import SearchVectorField, SearchVector
+from django.contrib.postgres.indexes import GinIndex
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -54,8 +56,21 @@ class Document(models.Model):
     version = models.IntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    search_vector = SearchVectorField(null=True)
     
     # ... rest of the methods remain the same
+
+    class Meta:
+        indexes = [
+            GinIndex(fields=['search_vector'])  # Add GIN index for faster searching
+        ]
+
+    def update_search_vector(self):
+        """Update search vector with document content"""
+        self.search_vector = SearchVector('title', weight='A') + \
+                           SearchVector('description', weight='B') + \
+                           SearchVector('tags', weight='C')
+        self.save(update_fields=['search_vector'])
 
     def __str__(self):
         return self.title

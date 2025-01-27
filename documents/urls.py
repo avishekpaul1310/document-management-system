@@ -32,4 +32,5 @@ urlpatterns = [
     path('document/<int:pk>/versions/', 
          views.DocumentVersionListView.as_view(), 
          name='document_versions'),
+    path('search/', views.DocumentSearchView.as_view(), name='document_search'),
 ]

@@ -8,9 +8,10 @@ from django.db.models import Q
 from django.http import FileResponse
 from django.utils.decorators import method_decorator
 from .models import Document, DocumentVersion,Category
-from .forms import DocumentForm, DocumentVersionForm, CategoryForm
+from .forms import DocumentForm, DocumentVersionForm, CategoryForm, DocumentSearchForm
 from .decorators import user_is_document_owner
 import os
+from django.contrib.postgres.search import SearchQuery, SearchRank
 
 class DocumentListView(LoginRequiredMixin, ListView):
     model = Document
@@ -264,3 +265,60 @@ class DocumentVersionListView(LoginRequiredMixin, UserPassesTestMixin, ListView)
         context = super().get_context_data(**kwargs)
         context['document'] = get_object_or_404(Document, pk=self.kwargs['pk'])
         return context
+    
+class DocumentSearchView(LoginRequiredMixin, ListView):
+    model = Document
+    template_name = 'documents/document_search.html'
+    context_object_name = 'documents'
+    paginate_by = 10
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['form'] = DocumentSearchForm(
+            self.request.user,
+            initial=self.request.GET
+        )
+        return context
+
+    def get_queryset(self):
+        queryset = Document.objects.filter(owner=self.request.user)
+        form = DocumentSearchForm(self.request.user, self.request.GET)
+
+        if form.is_valid():
+            # Full-text search
+            q = form.cleaned_data.get('q')
+            if q:
+                query = SearchQuery(q)
+                queryset = queryset.filter(search_vector=query)\
+                    .annotate(rank=SearchRank('search_vector', query))\
+                    .order_by('-rank')
+
+            # Category filter
+            category = form.cleaned_data.get('category')
+            if category:
+                queryset = queryset.filter(category=category)
+
+            # Status filter
+            status = form.cleaned_data.get('status')
+            if status:
+                queryset = queryset.filter(status=status)
+
+            # Tag-based search
+            tags = form.cleaned_data.get('tags')
+            if tags:
+                tag_list = [tag.strip() for tag in tags.split(',')]
+                tag_query = Q()
+                for tag in tag_list:
+                    tag_query |= Q(tags__icontains=tag)
+                queryset = queryset.filter(tag_query)
+
+            # Date range filter
+            created_after = form.cleaned_data.get('created_after')
+            if created_after:
+                queryset = queryset.filter(created_at__date__gte=created_after)
+
+            created_before = form.cleaned_data.get('created_before')
+            if created_before:
+                queryset = queryset.filter(created_at__date__lte=created_before)
+
+        return queryset.distinct()
