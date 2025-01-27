@@ -330,27 +330,28 @@
             </div>
 
             <!-- Session Information Card -->
-
-        <!-- Current Session Info - Updated with current time -->
-        <div class="card mt-3">
-            <div class="card-header">
-                <h5 class="mb-0">Session Information</h5>
+             
+            <!-- Session Information Card -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Session Information</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Current User
+                            <span class="badge bg-info">{{ current_user }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Current Time (UTC)
+                            <span class="badge bg-secondary" id="currentTime">2025-01-27 23:24:56</span>
+                        </li>
+                    </ul>
+                </div>
             </div>
-            <div class="card-body">
-                <ul class="list-group list-group-flush">
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        Current User
-                        <span class="badge bg-info">{{ current_user }}</span>
-                    </li>
-                    <li class="list-group-item d-flex justify-content-between align-items-center">
-                        Current Time (UTC)
-                        <span class="badge bg-secondary" id="currentTime">2025-01-27 22:08:29</span>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</div>
+        </div> <!-- End of col-md-4 -->
+    </div> <!-- End of row -->
+</div> <!-- End of container -->
 
 <!-- Add Comment Modal -->
 <div class="modal fade" id="addCommentModal" tabindex="-1">
@@ -472,7 +473,7 @@
                              String(now.getUTCHours()).padStart(2, '0') + ':' + 
                              String(now.getUTCMinutes()).padStart(2, '0') + ':' + 
                              String(now.getUTCSeconds()).padStart(2, '0');
-            $('#currentTime').text(timeString);
+            $('#currentTime, #currentTimeInfo').text(timeString);
         }
 
         // Update time immediately and then every second
@@ -481,3 +482,6 @@
     });
 </script>
 {% endblock %}
+            
+
+        
