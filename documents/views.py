@@ -209,6 +209,14 @@ class CategoryDeleteView(LoginRequiredMixin, DeleteView):
         messages.success(request, 'Category deleted successfully!')
         return super().delete(request, *args, **kwargs)
     
+class CategoryDetailView(LoginRequiredMixin, DetailView):
+    model = Category
+    template_name = 'documents/category_detail.html'
+    context_object_name = 'category'
+
+    def get_queryset(self):
+        return Category.objects.filter(owner=self.request.user)
+    
 class DocumentVersionCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = DocumentVersion
     form_class = DocumentVersionForm

@@ -186,6 +186,15 @@ class DocumentManagementTestCase(TestCase):
         latest_version = self.document.versions.latest('version_number')
         self.assertTrue(latest_version.file)
 
+    # documents/tests.py
+    def test_category_detail(self):
+        """Test category detail view"""
+        response = self.client.get(
+        reverse('category_detail', kwargs={'pk': self.category.pk})
+    )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Test Category')
+
     def tearDown(self):
         """Clean up after tests"""
         # Clean up uploaded files
