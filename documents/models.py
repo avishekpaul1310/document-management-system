@@ -125,7 +125,8 @@ class Document(models.Model):
     shared_users = models.ManyToManyField(
         settings.AUTH_USER_MODEL,
         through='SharedDocument',
-        related_name='shared_with_me'
+        related_name='shared_with_me',
+        through_fields=('document', 'shared_with')
     )
 
     def get_user_permission(self, user):
@@ -133,16 +134,14 @@ class Document(models.Model):
         if user == self.owner:
             return DocumentPermission.MANAGE
         try:
-            share = self.shares.get(
+            share = self.shares.filter(
                 shared_with=user,
-                is_active=True,
-                valid_until__isnull=True) | \
-                self.shares.get(
-                    shared_with=user,
-                    is_active=True,
-                    valid_until__gt=timezone.now()
-                )
-            return share.permission
+                is_active=True
+            ).filter(
+                models.Q(valid_until__isnull=True) |
+                models.Q(valid_until__gt=timezone.now())
+            ).first()
+            return share.permission if share else None
         except SharedDocument.DoesNotExist:
             return None
 
