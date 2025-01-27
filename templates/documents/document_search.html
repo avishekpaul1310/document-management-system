@@ -1,6 +1,8 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block title %}Search Documents - Document Management System{% endblock %}
+
 {% block extra_css %}
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-tagsinput@0.7.1/dist/bootstrap-tagsinput.css" rel="stylesheet">
 <style>
@@ -36,6 +38,10 @@
         margin-right: 4px;
         margin-bottom: 4px;
     }
+    .no-results {
+        text-align: center;
+        padding: 2rem;
+    }
 </style>
 {% endblock %}
 
@@ -44,29 +50,30 @@
     <div class="row">
         <!-- Search Filters Sidebar -->
         <div class="col-md-3">
-            <div class="card">
+            <div class="card mb-3">
                 <div class="card-header bg-primary text-white">
                     <h5 class="mb-0"><i class="fas fa-filter"></i> Search Filters</h5>
                 </div>
                 <div class="card-body">
                     <form method="get" id="searchForm">
                         <div class="mb-3">
-                            <label for="{{ form.query.id_for_label }}" class="form-label">Search</label>
-                            {{ form.query }}
+                            <label for="id_query" class="form-label">Search</label>
+                            <input type="text" name="query" value="{{ request.GET.query }}" class="form-control" 
+                                   placeholder="Search by title, description or content..." id="id_query">
                         </div>
 
                         <div class="mb-3">
-                            <label for="{{ form.category.id_for_label }}" class="form-label">Category</label>
+                            <label for="id_category" class="form-label">Category</label>
                             {{ form.category }}
                         </div>
 
                         <div class="mb-3">
-                            <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                            <label for="id_status" class="form-label">Status</label>
                             {{ form.status }}
                         </div>
 
                         <div class="mb-3">
-                            <label for="{{ form.tags.id_for_label }}" class="form-label">Tags</label>
+                            <label for="id_tags" class="form-label">Tags</label>
                             {{ form.tags }}
                             <small class="form-text text-muted">Separate tags with commas</small>
                         </div>
@@ -86,7 +93,7 @@
                         </div>
 
                         <div class="mb-3">
-                            <label for="{{ form.sort_by.id_for_label }}" class="form-label">Sort By</label>
+                            <label for="id_sort_by" class="form-label">Sort By</label>
                             {{ form.sort_by }}
                         </div>
 
@@ -103,15 +110,21 @@
             </div>
 
             <!-- Session Information -->
-            <div class="card mt-3">
+            <div class="card">
                 <div class="card-header bg-info text-white">
                     <h5 class="mb-0"><i class="fas fa-info-circle"></i> Session Info</h5>
                 </div>
                 <div class="card-body">
-                    <p class="mb-2"><strong><i class="fas fa-user"></i> Current User:</strong><br>
-                        {{ current_user.username }}</p>
-                    <p class="mb-0"><strong><i class="fas fa-clock"></i> Current Time (UTC):</strong><br>
-                        2025-01-27 15:54:04</p>
+                    <div class="session-info">
+                        <p class="mb-2">
+                            <strong><i class="fas fa-user"></i> Current User:</strong><br>
+                            avishekpaul1310
+                        </p>
+                        <p class="mb-0">
+                            <strong><i class="fas fa-clock"></i> Current Time (UTC):</strong><br>
+                            2025-01-27 16:20:40
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -120,121 +133,144 @@
         <div class="col-md-9">
             <div class="card">
                 <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-search"></i> Search Results</h5>
-                    <span class="badge bg-light text-primary">{{ page_obj.paginator.count }} Documents</span>
+                    <h5 class="mb-0">
+                        <i class="fas fa-search"></i> Search Results
+                        {% if request.GET.query %}
+                            for "{{ request.GET.query }}"
+                        {% endif %}
+                    </h5>
+                    <span class="badge bg-light text-primary">{{ page_obj.paginator.count }} Document{{ page_obj.paginator.count|pluralize }}</span>
                 </div>
                 <div class="card-body">
                     {% if documents %}
-                    <div class="table-responsive">
-                        <table class="table table-hover">
-                            <thead>
-                                <tr>
-                                    <th>Title</th>
-                                    <th>Category</th>
-                                    <th>Status</th>
-                                    <th>Tags</th>
-                                    <th>Last Updated</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for document in documents %}
-                                <tr>
-                                    <td>
-                                        <a href="{% url 'document_detail' document.pk %}" class="document-title">
-                                            {{ document.title }}
-                                        </a>
-                                        {% if document.description %}
-                                        <br>
-                                        <small class="document-description">{{ document.description|truncatechars:100 }}</small>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        {% if document.category %}
-                                        <span class="badge bg-secondary">{{ document.category.name }}</span>
-                                        {% else %}
-                                        <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <span class="badge {% if document.status == 'DRAFT' %}bg-warning
-                                                         {% elif document.status == 'IN_REVIEW' %}bg-info
-                                                         {% else %}bg-success{% endif %}">
-                                            {{ document.get_status_display }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        {% if document.tags %}
-                                        {% for tag in document.tags.split %}
-                                        <span class="badge bg-info tag-badge">{{ tag }}</span>
-                                        {% endfor %}
-                                        {% else %}
-                                        <span class="text-muted">-</span>
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <span title="{{ document.updated_at|date:'Y-m-d H:i:s' }}">
-                                            {{ document.updated_at|date:"Y-m-d H:i:s" }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group">
-                                            {% if document.file %}
-                                            <a href="{{ document.file.url }}" class="btn btn-sm btn-primary" 
-                                               target="_blank" title="Download">
-                                                <i class="fas fa-download"></i>
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Category</th>
+                                        <th>Status</th>
+                                        <th>Tags</th>
+                                        <th>Last Updated</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for document in documents %}
+                                        <tr>
+                                            <td>
+                                                <a href="{% url 'document_detail' document.pk %}" class="document-title">
+                                                    {{ document.title }}
+                                                </a>
+                                                {% if document.description %}
+                                                    <br>
+                                                    <small class="document-description">
+                                                        {{ document.description|truncatechars:100 }}
+                                                    </small>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if document.category %}
+                                                    <span class="badge bg-secondary">{{ document.category.name }}</span>
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span class="badge {% if document.status == 'DRAFT' %}bg-warning
+                                                                 {% elif document.status == 'IN_REVIEW' %}bg-info
+                                                                 {% else %}bg-success{% endif %}">
+                                                    {{ document.get_status_display }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if document.tags %}
+                                                    {% for tag in document.tags.split %}
+                                                        <span class="badge bg-info tag-badge">{{ tag }}</span>
+                                                    {% endfor %}
+                                                {% else %}
+                                                    <span class="text-muted">-</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                <span title="{{ document.updated_at|date:'Y-m-d H:i:s' }}">
+                                                    {{ document.updated_at|date:"Y-m-d H:i:s" }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    {% if document.file %}
+                                                        <a href="{{ document.file.url }}" 
+                                                           class="btn btn-sm btn-primary" 
+                                                           target="_blank" 
+                                                           title="Download">
+                                                            <i class="fas fa-download"></i>
+                                                        </a>
+                                                    {% endif %}
+                                                    {% if user == document.owner %}
+                                                        <a href="{% url 'document_update' document.pk %}" 
+                                                           class="btn btn-sm btn-info" 
+                                                           title="Edit">
+                                                            <i class="fas fa-edit"></i>
+                                                        </a>
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if is_paginated %}
+                            <nav aria-label="Page navigation" class="mt-4">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page=1">
+                                                &laquo; First
                                             </a>
-                                            {% endif %}
-                                            {% if user == document.owner %}
-                                            <a href="{% url 'document_update' document.pk %}" 
-                                               class="btn btn-sm btn-info" title="Edit">
-                                                <i class="fas fa-edit"></i>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                                                Previous
                                             </a>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                                        </li>
+                                    {% endif %}
 
-                    <!-- Pagination -->
-                    {% if is_paginated %}
-                    <nav aria-label="Page navigation" class="mt-4">
-                        <ul class="pagination justify-content-center">
-                            {% if page_obj.has_previous %}
-                            <li class="page-item">
-                                <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page=1">&laquo; First</a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
-                            </li>
-                            {% endif %}
+                                    <li class="page-item active">
+                                        <span class="page-link">
+                                            Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                                        </span>
+                                    </li>
 
-                            <li class="page-item active">
-                                <span class="page-link">
-                                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
-                                </span>
-                            </li>
-
-                            {% if page_obj.has_next %}
-                            <li class="page-item">
-                                <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
-                            </li>
-                            <li class="page-item">
-                                <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
-                            </li>
-                            {% endif %}
-                        </ul>
-                    </nav>
-                    {% endif %}
+                                    {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}">
+                                                Next
+                                            </a>
+                                        </li>
+                                        <li class="page-item">
+                                            <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.paginator.num_pages }}">
+                                                Last &raquo;
+                                            </a>
+                                        </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                        {% endif %}
                     {% else %}
-                    <div class="text-center py-5">
-                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                        <h5>No documents found matching your search criteria</h5>
-                        <p class="text-muted">Try adjusting your search filters or <a href="{% url 'document_create' %}">create a new document</a>.</p>
-                    </div>
+                        <div class="no-results">
+                            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                            <h5>No documents found matching your search criteria</h5>
+                            <p class="text-muted">
+                                {% if request.GET.query %}
+                                    No documents found matching "{{ request.GET.query }}".
+                                {% endif %}
+                                Try adjusting your search filters or <a href="{% url 'document_create' %}">create a new document</a>.
+                            </p>
+                        </div>
                     {% endif %}
                 </div>
             </div>
@@ -248,13 +284,13 @@
 <script>
 $(document).ready(function() {
     // Initialize Bootstrap Tags Input
-    $('#{{ form.tags.id_for_label }}').tagsinput({
+    $('#id_tags').tagsinput({
         trimValue: true,
         confirmKeys: [13, 44] // Enter and comma
     });
 
     // Auto-submit form when sort option changes
-    $('#{{ form.sort_by.id_for_label }}').change(function() {
+    $('#id_sort_by').change(function() {
         $('#searchForm').submit();
     });
 
@@ -265,6 +301,17 @@ $(document).ready(function() {
     $('.btn-outline-secondary').click(function(e) {
         if (!confirm('Are you sure you want to reset all filters?')) {
             e.preventDefault();
+        }
+    });
+
+    // Handle date range validation
+    $('#id_date_from, #id_date_to').change(function() {
+        var dateFrom = $('#id_date_from').val();
+        var dateTo = $('#id_date_to').val();
+        
+        if (dateFrom && dateTo && dateFrom > dateTo) {
+            alert('The "From" date must be before or equal to the "To" date');
+            $(this).val('');
         }
     });
 });

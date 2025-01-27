@@ -287,11 +287,21 @@ class DocumentSearchTestCase(TestCase):
 
     def test_search_by_title(self):
         """Test searching documents by title"""
+        # Test exact match
         response = self.client.get(reverse('document_search'), {'query': 'Test Document 1'})
-        content = response.content.decode('utf-8')
         self.assertContains(response, 'Test Document 1')
         self.assertNotContains(response, 'Another Document')
-        
+    
+        # Test non-matching query
+        response = self.client.get(reverse('document_search'), {'query': 'Nonexistent Document'})
+        self.assertNotContains(response, 'Test Document 1')
+        self.assertNotContains(response, 'Another Document')
+
+        # Test case-insensitive match
+        response = self.client.get(reverse('document_search'), {'query': 'TEST DOCUMENT 1'})
+        self.assertContains(response, 'Test Document 1')
+        self.assertNotContains(response, 'Another Document')  
+              
     def test_filter_by_category(self):
         """Test filtering documents by category"""
         response = self.client.get(reverse('document_search'), 

@@ -6,12 +6,9 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy, reverse
 from django.db.models import Q
 from django.http import FileResponse
-from django.utils.decorators import method_decorator
 from .models import Document, DocumentVersion,Category
-from .forms import DocumentForm, DocumentVersionForm, CategoryForm, DocumentSearchForm, AdvancedSearchForm
-from .decorators import user_is_document_owner
+from .forms import DocumentForm, DocumentVersionForm, CategoryForm, AdvancedSearchForm
 import os
-from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
 from django.utils import timezone
 
 class DocumentListView(LoginRequiredMixin, ListView):
@@ -291,16 +288,21 @@ class DocumentSearchView(LoginRequiredMixin, ListView):
             # Text search
             query = form.cleaned_data.get('query')
             if query:
-                search_query = Q()
-                # Split the query into words for better matching
-                query_words = query.split()
-                for word in query_words:
-                    search_query |= (
-                        Q(title__icontains=word) |
-                        Q(description__icontains=word) |
-                        Q(tags__icontains=word)
+                # Exact title match gets priority
+                title_exact = Q(title__iexact=query)
+                title_contains = Q(title__icontains=query)
+                description_contains = Q(description__icontains=query)
+                tags_contains = Q(tags__icontains=query)
+                
+                # First try exact match
+                exact_matches = queryset.filter(title_exact)
+                if exact_matches.exists():
+                    queryset = exact_matches
+                else:
+                    # Then try partial matches
+                    queryset = queryset.filter(
+                        title_contains | description_contains | tags_contains
                     )
-                queryset = queryset.filter(search_query)
 
             # Category filter
             category = form.cleaned_data.get('category')
@@ -315,11 +317,10 @@ class DocumentSearchView(LoginRequiredMixin, ListView):
             # Tags filter
             tags = form.cleaned_data.get('tags')
             if tags:
-                tag_list = [tag.strip() for tag in tags.split(',')]
-                tag_q = Q()
-                for tag in tag_list:
-                    tag_q |= Q(tags__icontains=tag)
-                queryset = queryset.filter(tag_q)
+                for tag in tags.split(','):
+                    tag = tag.strip()
+                    if tag:
+                        queryset = queryset.filter(tags__icontains=tag)
 
             # Date range filter
             date_from = form.cleaned_data.get('date_from')
@@ -331,8 +332,10 @@ class DocumentSearchView(LoginRequiredMixin, ListView):
                 queryset = queryset.filter(created_at__date__lte=date_to)
 
             # Sorting
-            sort_by = form.cleaned_data.get('sort_by', '-updated_at')
+            sort_by = form.cleaned_data.get('sort_by')
             if sort_by:
                 queryset = queryset.order_by(sort_by)
+            else:
+                queryset = queryset.order_by('-updated_at')
 
         return queryset.distinct()
