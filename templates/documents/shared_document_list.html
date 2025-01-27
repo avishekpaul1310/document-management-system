@@ -1,4 +1,3 @@
-<!-- templates/documents/shared_document_list.html -->
 {% extends 'base.html' %}
 {% load static %}
 
@@ -10,22 +9,35 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5>Shared by Me</h5>
+                    <h5>Documents Shared by Me</h5>
                 </div>
                 <div class="card-body">
                     {% if shared_by_me %}
                         <div class="list-group">
                             {% for share in shared_by_me %}
                                 <div class="list-group-item">
-                                    <h6>{{ share.document.title }}</h6>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-1">
+                                            <a href="{% url 'document_detail' share.document.pk %}">
+                                                {{ share.document.title }}
+                                            </a>
+                                        </h6>
+                                        <small class="text-muted">{{ share.shared_at|date:"M d, Y" }}</small>
+                                    </div>
                                     <p class="mb-1">Shared with: {{ share.shared_with.username }}</p>
-                                    <p class="mb-1">Permission: {{ share.get_permission_display }}</p>
-                                    <small class="text-muted">Shared on: {{ share.shared_at|date:"M d, Y" }}</small>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">Permission: {{ share.get_permission_display }}</small>
+                                        {% if share.valid_until %}
+                                            <span class="badge bg-warning" title="Expires on {{ share.valid_until|date:'Y-m-d H:i' }}">
+                                                Expires: {{ share.valid_until|date:"M d, Y" }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             {% endfor %}
                         </div>
                     {% else %}
-                        <p>You haven't shared any documents yet.</p>
+                        <p class="text-muted">You haven't shared any documents yet.</p>
                     {% endif %}
                 </div>
             </div>
@@ -34,22 +46,35 @@
         <div class="col-md-6">
             <div class="card">
                 <div class="card-header">
-                    <h5>Shared with Me</h5>
+                    <h5>Documents Shared with Me</h5>
                 </div>
                 <div class="card-body">
                     {% if shared_with_me %}
                         <div class="list-group">
                             {% for share in shared_with_me %}
                                 <div class="list-group-item">
-                                    <h6>{{ share.document.title }}</h6>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-1">
+                                            <a href="{% url 'document_detail' share.document.pk %}">
+                                                {{ share.document.title }}
+                                            </a>
+                                        </h6>
+                                        <small class="text-muted">{{ share.shared_at|date:"M d, Y" }}</small>
+                                    </div>
                                     <p class="mb-1">Shared by: {{ share.shared_by.username }}</p>
-                                    <p class="mb-1">Permission: {{ share.get_permission_display }}</p>
-                                    <small class="text-muted">Shared on: {{ share.shared_at|date:"M d, Y" }}</small>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">Permission: {{ share.get_permission_display }}</small>
+                                        {% if share.valid_until %}
+                                            <span class="badge bg-warning" title="Expires on {{ share.valid_until|date:'Y-m-d H:i' }}">
+                                                Expires: {{ share.valid_until|date:"M d, Y" }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             {% endfor %}
                         </div>
                     {% else %}
-                        <p>No documents have been shared with you yet.</p>
+                        <p class="text-muted">No documents have been shared with you yet.</p>
                     {% endif %}
                 </div>
             </div>
@@ -58,24 +83,11 @@
 </div>
 {% endblock %}
 
-<!-- templates/documents/share_document.html -->
-{% extends 'base.html' %}
-{% load crispy_forms_tags %}
-
-{% block content %}
-<div class="container mt-4">
-    <h2>Share Document</h2>
-    <h4 class="text-muted">{{ document.title }}</h4>
-
-    <div class="card mt-4">
-        <div class="card-body">
-            <form method="post">
-                {% csrf_token %}
-                {{ form|crispy }}
-                <button type="submit" class="btn btn-primary">Share Document</button>
-                <a href="{% url 'document_detail' document.pk %}" class="btn btn-secondary">Cancel</a>
-            </form>
-        </div>
-    </div>
-</div>
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Enable tooltips
+        $('[title]').tooltip();
+    });
+</script>
 {% endblock %}
