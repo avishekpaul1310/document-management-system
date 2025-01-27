@@ -6,7 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.urls import reverse_lazy, reverse
 from django.db.models import Q
 from django.http import FileResponse
-from .models import Document, DocumentVersion,Category, DocumentAccessLog
+from .models import Document, DocumentVersion,Category, DocumentAccessLog, DocumentPermission
 from .forms import DocumentForm, DocumentVersionForm, CategoryForm, AdvancedSearchForm
 import os
 from django.utils import timezone
@@ -47,6 +47,9 @@ class DocumentListView(LoginRequiredMixin, ListView):
         context['current_search'] = self.request.GET.get('q', '')
         context['current_status'] = self.request.GET.get('status', 'ALL')
         context['status_choices'] = Document.STATUS_CHOICES
+        context['document'] = Document.objects.get(pk=self.kwargs['pk'])
+        context['current_time'] = "2025-01-27 23:06:17"  # Update this
+        context['current_user'] = "avishekpaul1310"
         return context
 
 class DocumentDetailView(LoginRequiredMixin, DocumentAccessLogMixin, DetailView):
@@ -55,13 +58,27 @@ class DocumentDetailView(LoginRequiredMixin, DocumentAccessLogMixin, DetailView)
     context_object_name = 'document'
 
     def get_queryset(self):
-        return Document.objects.filter(owner=self.request.user)
+        # Include documents shared with the user as well as owned documents
+        base_queryset = Document.objects.filter(
+            Q(owner=self.request.user) | 
+            Q(shares__shared_with=self.request.user, shares__is_active=True)
+        ).distinct()
+        return base_queryset
 
-    def get_context_data(self, request, *args, **kwargs):
-        context = super().get_context_data(request, *args, **kwargs)
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
         context['versions'] = self.object.versions.all().order_by('-version_number')
         context['version_form'] = DocumentVersionForm()
+        context['current_time'] = "2025-01-27 23:06:17"
+        context['current_user'] = "avishekpaul1310"
+        # Add access permission level for the current user
+        context['user_permission'] = self.object.get_user_permission(self.request.user)
         return context
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+        self.log_access(self.object, 'VIEW')
+        return response
 
 class DocumentCreateView(LoginRequiredMixin, CreateView):
     model = Document

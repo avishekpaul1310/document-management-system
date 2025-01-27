@@ -14,7 +14,9 @@
     {% endif %}
 
     <div class="row">
+        <!-- Main Content Column -->
         <div class="col-md-8">
+            <!-- Document Details Card -->
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h2 class="mb-0">{{ document.title }}</h2>
@@ -39,8 +41,8 @@
                         <div class="col-md-6">
                             <h6 class="text-muted">Status</h6>
                             <span class="badge {% if document.status == 'DRAFT' %}bg-warning
-                                             {% elif document.status == 'IN_REVIEW' %}bg-info
-                                             {% else %}bg-success{% endif %}">
+                                           {% elif document.status == 'IN_REVIEW' %}bg-info
+                                           {% else %}bg-success{% endif %}">
                                 {{ document.get_status_display }}
                             </span>
                         </div>
@@ -139,7 +141,7 @@
             </div>
         </div>
 
-        <!-- Sidebar -->
+        <!-- Sidebar Column -->
         <div class="col-md-4">
             <!-- Document Information Card -->
             <div class="card">
@@ -162,7 +164,7 @@
                         </li>
                         <li class="list-group-item d-flex justify-content-between align-items-center">
                             Current Time (UTC)
-                            <span class="badge bg-primary">{{ document.versions.count }}</span>
+                            <span class="badge bg-secondary" id="currentTimeInfo">2025-01-27 23:15:14</span>
                         </li>
                     </ul>
                 </div>
@@ -206,131 +208,128 @@
                 </div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
-                        {% for share in document.shares.all|slice:":3" %}
+                        {% for log in document.access_logs.all|slice:":5" %}
                             <li class="list-group-item">
-                                <small class="text-muted">{{ share.shared_at|date:"Y-m-d H:i:s" }}</small>
-                                <p class="mb-0">Shared with {{ share.shared_with.username }}</p>
-                                <small class="text-muted">{{ share.get_permission_display }} access</small>
+                                <small class="text-muted">{{ log.accessed_at|date:"Y-m-d H:i:s" }}</small>
+                                <p class="mb-0">
+                                    {{ log.user.username }} {{ log.get_action_display|lower }}
+                                    {% if log.additional_data %}
+                                    <small class="text-muted">
+                                        ({{ log.additional_data|json_script:"log-data-"|safe }})
+                                    </small>
+                                    {% endif %}
+                                </p>
                             </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted">No recent activity</li>
                         {% endfor %}
-                        {% with latest_version=document.versions.first %}
-                        {% if latest_version %}
-                        <li class="list-group-item">
-                            <small class="text-muted">{{ latest_version.created_at|date:"Y-m-d H:i:s" }}</small>
-                            <p class="mb-0">New version uploaded (v{{ latest_version.version_number }})</p>
-                            {% if latest_version.notes %}
-                            <small class="text-muted">{{ latest_version.notes }}</small>
-                            {% endif %}
-                        </li>
-                        {% endif %}
-                        {% endwith %}
-                        <li class="list-group-item">
-                            <small class="text-muted">{{ document.created_at|date:"Y-m-d H:i:s" }}</small>
-                            <p class="mb-0">Document created by {{ document.owner.username }}</p>
-                        </li>
                     </ul>
                 </div>
             </div>
-        <!-- Add this after the Timeline Card -->
-<div class="card mt-3">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Access History</h5>
-        {% if user == document.owner or document.can_user_access user 'MANAGE' %}
-        <a href="{% url 'document_access_logs' document.pk %}" class="btn btn-sm btn-info">
-            <i class="fas fa-history"></i> View All
-        </a>
-        {% endif %}
-    </div>
-    <div class="card-body p-0">
-        <ul class="list-group list-group-flush">
-            {% for log in document.access_logs.all|slice:":5" %}
-            <li class="list-group-item">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div>
-                        <small class="text-muted">{{ log.accessed_at|date:"Y-m-d H:i:s" }}</small>
-                        <p class="mb-0">
-                            {{ log.user.username }} {{ log.get_action_display|lower }}
-                            {% if log.additional_data %}
-                            <small class="text-muted">
-                                ({{ log.additional_data|json_script:"log-data-"|safe }})
-                            </small>
-                            {% endif %}
-                        </p>
-                    </div>
-                    {% if log.ip_address %}
-                    <small class="text-muted" title="IP Address">
-                        {{ log.ip_address }}
-                    </small>
+
+            <!-- Access History Card -->
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Access History</h5>
+                    {% if user == document.owner or document.can_user_access user 'MANAGE' %}
+                    <a href="{% url 'document_access_logs' document.pk %}" class="btn btn-sm btn-info">
+                        <i class="fas fa-history"></i> View All
+                    </a>
                     {% endif %}
                 </div>
-            </li>
-            {% empty %}
-            <li class="list-group-item text-muted">No access history available</li>
-            {% endfor %}
-        </ul>
-    </div>
-</div>
-            <!-- Comments Card - New Addition -->
-        <div class="card mt-3">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">Comments</h5>
-                {% if user.is_authenticated and document.can_user_access user 'COMMENT' %}
-                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addCommentModal">
-                    <i class="fas fa-comment"></i> Add Comment
-                </button>
-                {% endif %}
-            </div>
-            <div class="card-body p-0">
-                <ul class="list-group list-group-flush" id="commentsList">
-                    {% for comment in document.comments.all %}
-                    <li class="list-group-item">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div>
-                                <strong>{{ comment.author.username }}</strong>
-                                <small class="text-muted">{{ comment.created_at|date:"Y-m-d H:i:s" }}</small>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for log in document.access_logs.all|slice:":5" %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <small class="text-muted">{{ log.accessed_at|date:"Y-m-d H:i:s" }}</small>
+                                    <p class="mb-0">
+                                        {{ log.user.username }} {{ log.get_action_display|lower }}
+                                        {% if log.additional_data %}
+                                        <small class="text-muted">
+                                            ({{ log.additional_data|json_script:"log-data-"|safe }})
+                                        </small>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                                {% if log.ip_address %}
+                                <small class="text-muted" title="IP Address">
+                                    {{ log.ip_address }}
+                                </small>
+                                {% endif %}
                             </div>
-                            {% if user == comment.author %}
-                            <div class="btn-group">
-                                <button class="btn btn-sm btn-outline-primary edit-comment" 
-                                        data-comment-id="{{ comment.id }}"
-                                        data-bs-toggle="modal" 
-                                        data-bs-target="#editCommentModal">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger delete-comment" 
-                                        data-comment-id="{{ comment.id }}">
-                                    <i class="fas fa-trash"></i>
-                                </button>
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-muted">No access history available</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Comments Card -->
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Comments</h5>
+                    {% if user.is_authenticated and document.can_user_access user 'COMMENT' %}
+                    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addCommentModal">
+                        <i class="fas fa-comment"></i> Add Comment
+                    </button>
+                    {% endif %}
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush" id="commentsList">
+                        {% for comment in document.comments.all %}
+                        <li class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <strong>{{ comment.author.username }}</strong>
+                                    <small class="text-muted">{{ comment.created_at|date:"Y-m-d H:i:s" }}</small>
+                                </div>
+                                {% if user == comment.author %}
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary edit-comment" 
+                                            data-comment-id="{{ comment.id }}"
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#editCommentModal">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-comment" 
+                                            data-comment-id="{{ comment.id }}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <p class="mb-0 mt-2">{{ comment.content }}</p>
+                            {% if comment.replies.exists %}
+                            <div class="ms-4 mt-2">
+                                {% for reply in comment.replies.all %}
+                                <div class="border-start ps-3 mb-2">
+                                    <small><strong>{{ reply.author.username }}</strong></small>
+                                    <small class="text-muted">{{ reply.created_at|date:"Y-m-d H:i:s" }}</small>
+                                    <p class="mb-0">{{ reply.content }}</p>
+                                </div>
+                                {% endfor %}
                             </div>
                             {% endif %}
-                        </div>
-                        <p class="mb-0 mt-2">{{ comment.content }}</p>
-                        {% if comment.replies.exists %}
-                        <div class="ms-4 mt-2">
-                            {% for reply in comment.replies.all %}
-                            <div class="border-start ps-3 mb-2">
-                                <small><strong>{{ reply.author.username }}</strong></small>
-                                <small class="text-muted">{{ reply.created_at|date:"Y-m-d H:i:s" }}</small>
-                                <p class="mb-0">{{ reply.content }}</p>
-                            </div>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                        {% if user.is_authenticated and document.can_user_access user 'COMMENT' %}
-                        <button class="btn btn-sm btn-link reply-to-comment" 
-                                data-comment-id="{{ comment.id }}"
-                                data-bs-toggle="modal" 
-                                data-bs-target="#replyCommentModal">
-                            Reply
-                        </button>
-                        {% endif %}
-                    </li>
-                    {% empty %}
-                    <li class="list-group-item text-muted">No comments yet</li>
-                    {% endfor %}
-                </ul>
+                            {% if user.is_authenticated and document.can_user_access user 'COMMENT' %}
+                            <button class="btn btn-sm btn-link reply-to-comment" 
+                                    data-comment-id="{{ comment.id }}"
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#replyCommentModal">
+                                Reply
+                            </button>
+                            {% endif %}
+                        </li>
+                        {% empty %}
+                        <li class="list-group-item text-muted">No comments yet</li>
+                        {% endfor %}
+                    </ul>
+                </div>
             </div>
-        </div>
+
+            <!-- Session Information Card -->
 
         <!-- Current Session Info - Updated with current time -->
         <div class="card mt-3">
