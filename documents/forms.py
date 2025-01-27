@@ -243,11 +243,15 @@ class ShareDocumentForm(forms.ModelForm):
         # Exclude document owner and already shared users from the choices
         exclude_users = [self.document.owner]
         exclude_users.extend(
-            self.document.shared_users.values_list('id', flat=True)
+            SharedDocument.objects.filter(document=self.document)
+            .values_list('shared_with', flat=True)
         )
         self.fields['shared_with'].queryset = User.objects.exclude(
             id__in=exclude_users
         ).order_by('username')
+
+        self.fields['valid_until'].help_text = 'Leave empty for indefinite access'
+        self.fields['permission'].help_text = 'Select the level of access to grant'
 
         # Set permission choices based on user's permission level
         if self.user != self.document.owner:
