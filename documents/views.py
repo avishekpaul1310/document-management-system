@@ -209,8 +209,8 @@ class CategoryDeleteView(LoginRequiredMixin, DeleteView):
         messages.success(request, 'Category deleted successfully!')
         return super().delete(request, *args, **kwargs)
     
-    class DocumentVersionCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
-     model = DocumentVersion
+class DocumentVersionCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    model = DocumentVersion
     form_class = DocumentVersionForm
     template_name = 'documents/document_version_form.html'
 
@@ -221,17 +221,23 @@ class CategoryDeleteView(LoginRequiredMixin, DeleteView):
     def form_valid(self, form):
         document = get_object_or_404(Document, pk=self.kwargs['pk'])
         form.instance.document = document
+        form.instance.version_number = document.version + 1
         response = super().form_valid(form)
-        # Create new version and update document
-        document.create_new_version(
-            file=form.cleaned_data['file'],
-            notes=form.cleaned_data['notes']
-        )
+        
+        # Update document version number
+        document.version = form.instance.version_number
+        document.save()
+        
         messages.success(self.request, 'New version uploaded successfully.')
         return response
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['document'] = get_object_or_404(Document, pk=self.kwargs['pk'])
+        return context
+
     def get_success_url(self):
-        return reverse_lazy('document_detail', kwargs={'pk': self.kwargs['pk']})
+        return reverse('document_detail', kwargs={'pk': self.kwargs['pk']})
 
 class DocumentVersionListView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     model = DocumentVersion
@@ -248,6 +254,5 @@ class DocumentVersionListView(LoginRequiredMixin, UserPassesTestMixin, ListView)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        document = get_object_or_404(Document, pk=self.kwargs['pk'])
-        context['document'] = document
+        context['document'] = get_object_or_404(Document, pk=self.kwargs['pk'])
         return context

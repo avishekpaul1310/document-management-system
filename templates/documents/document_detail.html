@@ -1,83 +1,195 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block content %}
-<div class="row mb-4">
-    <div class="col-md-8">
-        <h2>{{ document.title }}</h2>
-    </div>
-    <div class="col-md-4 text-end">
-        <a href="{% url 'document_update' document.pk %}" class="btn btn-primary">Edit</a>
-        <a href="{% url 'document_delete' document.pk %}" class="btn btn-danger">Delete</a>
-    </div>
-</div>
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h2 class="mb-0">{{ document.title }}</h2>
+                    <div class="btn-group">
+                        {% if user == document.owner %}
+                            <a href="{% url 'document_update' document.pk %}" class="btn btn-outline-primary">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                            <a href="{% url 'document_delete' document.pk %}" class="btn btn-outline-danger">
+                                <i class="fas fa-trash"></i> Delete
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Status</h6>
+                            <span class="badge {% if document.status == 'DRAFT' %}bg-warning
+                                             {% elif document.status == 'IN_REVIEW' %}bg-info
+                                             {% else %}bg-success{% endif %}">
+                                {{ document.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Category</h6>
+                            {% if document.category %}
+                                <a href="{% url 'category_detail' document.category.pk %}" class="text-decoration-none">
+                                    <span class="badge bg-secondary">{{ document.category.name }}</span>
+                                </a>
+                            {% else %}
+                                <span class="text-muted">Uncategorized</span>
+                            {% endif %}
+                        </div>
+                    </div>
 
-<div class="card mb-4">
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-8">
-                <h5>Document Details</h5>
-                <p>{{ document.description }}</p>
-                <p><strong>Status:</strong> 
-                    <span class="badge bg-{% if document.status == 'DRAFT' %}secondary{% elif document.status == 'IN_REVIEW' %}warning{% else %}success{% endif %}">
-                        {{ document.get_status_display }}
-                    </span>
-                </p>
-                <p><strong>Tags:</strong> 
-                    {% for tag in document.tags.split %} 
-                        <span class="badge bg-info">{{ tag }}</span>
-                    {% endfor %}
-                </p>
-                <p><strong>Current Version:</strong> v{{ document.version }}</p>
+                    <div class="mb-3">
+                        <h6 class="text-muted">Description</h6>
+                        <p>{{ document.description|default:"No description provided." }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="text-muted">Tags</h6>
+                        {% if document.tags %}
+                            {% for tag in document.tags.split %}
+                                <span class="badge bg-info">{{ tag }}</span>
+                            {% endfor %}
+                        {% else %}
+                            <span class="text-muted">No tags</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="text-muted">File</h6>
+                        <a href="{{ document.file.url }}" class="btn btn-primary" target="_blank">
+                            <i class="fas fa-download"></i> Download Current Version
+                        </a>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="text-muted">Created by</h6>
+                        <p>{{ document.owner.username }} on {{ document.created_at|date:"F j, Y, g:i a" }}</p>
+                    </div>
+
+                    <div class="mb-3">
+                        <h6 class="text-muted">Last Updated</h6>
+                        <p>{{ document.updated_at|date:"F j, Y, g:i a" }}</p>
+                    </div>
+                </div>
             </div>
-            <div class="col-md-4">
-                <div class="text-end">
-                    <p><small>Created: {{ document.created_at|date:"M d, Y H:i" }}</small></p>
-                    <p><small>Last Updated: {{ document.updated_at|date:"M d, Y H:i" }}</small></p>
-                    <a href="{{ document.file.url }}" class="btn btn-success" download>
-                        Download Current Version
-                    </a>
+
+            <!-- Version Control Card -->
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Version Control</h5>
+                    {% if user == document.owner %}
+                    <div>
+                        <a href="{% url 'document_version_create' document.pk %}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-upload"></i> Upload New Version
+                        </a>
+                        <a href="{% url 'document_versions' document.pk %}" class="btn btn-info btn-sm">
+                            <i class="fas fa-history"></i> Version History
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-0">Current Version: v{{ document.version }}</p>
+                            {% with latest_version=document.versions.first %}
+                            {% if latest_version %}
+                            <small class="text-muted">
+                                Last updated: {{ latest_version.created_at|date:"F j, Y, g:i a" }}
+                            </small>
+                            {% if latest_version.notes %}
+                            <div class="mt-2">
+                                <strong>Latest Version Notes:</strong>
+                                <p class="mb-0">{{ latest_version.notes }}</p>
+                            </div>
+                            {% endif %}
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                        <div class="col-md-6">
+                            {% with total_versions=document.versions.count %}
+                            {% if total_versions > 0 %}
+                            <p class="mb-0">Total Versions: {{ total_versions }}</p>
+                            <small class="text-muted">
+                                <a href="{% url 'document_versions' document.pk %}">View all versions</a>
+                            </small>
+                            {% endif %}
+                            {% endwith %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-md-4">
+            <!-- Document Information Card -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Document Information</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            File Type
+                            <span class="badge bg-secondary">
+                                {{ document.file.name|split:'.'|last|upper }}
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            File Size
+                            <span class="badge bg-secondary">
+                                {% if document.file.size < 1048576 %}
+                                    {{ document.file.size|filesizeformat }}
+                                {% else %}
+                                    {{ document.file.size|filesizeformat }}
+                                {% endif %}
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Versions
+                            <span class="badge bg-primary">{{ document.versions.count }}</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Timeline Card -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Activity</h5>
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% with latest_version=document.versions.first %}
+                        {% if latest_version %}
+                        <li class="list-group-item">
+                            <small class="text-muted">{{ latest_version.created_at|date:"F j, Y, g:i a" }}</small>
+                            <p class="mb-0">New version uploaded (v{{ latest_version.version_number }})</p>
+                        </li>
+                        {% endif %}
+                        {% endwith %}
+                        <li class="list-group-item">
+                            <small class="text-muted">{{ document.created_at|date:"F j, Y, g:i a" }}</small>
+                            <p class="mb-0">Document created</p>
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
-<div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Version History</h5>
-        <a href="{% url 'add_version' document.pk %}" class="btn btn-primary btn-sm">Add New Version</a>
-    </div>
-    <div class="card-body">
-        {% if versions %}
-            <div class="table-responsive">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Version</th>
-                            <th>Created</th>
-                            <th>Notes</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for version in versions %}
-                            <tr>
-                                <td>v{{ version.version_number }}</td>
-                                <td>{{ version.created_at|date:"M d, Y H:i" }}</td>
-                                <td>{{ version.notes|default:"No notes" }}</td>
-                                <td>
-                                    <a href="{{ version.file.url }}" class="btn btn-sm btn-outline-primary" download>
-                                        Download
-                                    </a>
-                                </td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        {% else %}
-            <p class="text-muted">No version history available.</p>
-        {% endif %}
-    </div>
-</div>
+{% block extra_js %}
+<script>
+    // Add any JavaScript needed for the document detail page
+    $(document).ready(function() {
+        // Enable tooltips
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+</script>
 {% endblock %}

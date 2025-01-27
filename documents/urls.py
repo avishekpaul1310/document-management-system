@@ -23,4 +23,10 @@ urlpatterns = [
     path('document/<int:pk>/versions/', 
          views.DocumentVersionListView.as_view(), 
          name='document_versions'),
+     path('document/<int:pk>/version/new/', 
+         views.DocumentVersionCreateView.as_view(), 
+         name='document_version_create'),
+    path('document/<int:pk>/versions/', 
+         views.DocumentVersionListView.as_view(), 
+         name='document_versions'),
 ]
