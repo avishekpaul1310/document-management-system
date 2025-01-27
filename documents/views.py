@@ -48,7 +48,7 @@ class DocumentListView(LoginRequiredMixin, ListView):
         context['current_status'] = self.request.GET.get('status', 'ALL')
         context['status_choices'] = Document.STATUS_CHOICES
         context['document'] = Document.objects.get(pk=self.kwargs['pk'])
-        context['current_time'] = "2025-01-27 23:06:17"  # Update this
+        context['current_time'] = "2025-01-27 23:30:43"  # Update this
         context['current_user'] = "avishekpaul1310"
         return context
 
