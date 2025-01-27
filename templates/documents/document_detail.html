@@ -19,6 +19,11 @@
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h2 class="mb-0">{{ document.title }}</h2>
                     <div class="btn-group">
+                        {% if user == document.owner or document.can_user_access(user, 'MANAGE') %}
+                            <a href="{% url 'share_document' document.pk %}" class="btn btn-outline-success">
+                                <i class="fas fa-share"></i> Share
+                            </a>
+                        {% endif %}
                         {% if user == document.owner %}
                             <a href="{% url 'document_update' document.pk %}" class="btn btn-outline-primary">
                                 <i class="fas fa-edit"></i> Edit
@@ -167,6 +172,14 @@
             <div class="card mt-3">
                 <div class="card-header">
                     <h5 class="mb-0">Recent Activity</h5>
+                        class="list-group list-group-flush">
+                        {% for share in document.shares.all|slice:":3" %}
+                            <li class="list-group-item">
+                                <small class="text-muted">{{ share.shared_at|date:"Y-m-d H:i:s" }}</small>
+                                <p class="mb-0">Shared with {{ share.shared_with.username }}</p>
+                                <small class="text-muted">{{ share.get_permission_display }} access</small>
+                            </li>
+                        {% endfor %}
                 </div>
                 <div class="card-body p-0">
                     <ul class="list-group list-group-flush">
@@ -184,6 +197,36 @@
                         <li class="list-group-item">
                             <small class="text-muted">{{ document.created_at|date:"Y-m-d H:i:s" }}</small>
                             <p class="mb-0">Document created by {{ document.owner.username }}</p>
+                            <!-- Shared Users Card -->
+                       <div class="card mt-3">
+                           <div class="card-header d-flex justify-content-between align-items-center">
+                               <h5 class="mb-0">Shared With</h5>
+                               {% if user == document.owner or document.can_user_access(user, 'MANAGE') %}
+                                   <a href="{% url 'share_document' document.pk %}" class="btn btn-sm btn-success">
+                                       <i class="fas fa-plus"></i> Share
+                                   </a>
+                               {% endif %}
+                           </div>
+                           <div class="card-body p-0">
+                               <ul class="list-group list-group-flush">
+                                   {% for share in document.shares.all %}
+                                       <li class="list-group-item d-flex justify-content-between align-items-center">
+                                           {{ share.shared_with.username }}
+                                           <div>
+                                               <span class="badge bg-info">{{ share.get_permission_display }}</span>
+                                               {% if share.valid_until %}
+                                                   <span class="badge bg-warning" title="Expires on {{ share.valid_until|date:'Y-m-d H:i' }}">
+                                                       <i class="fas fa-clock"></i>
+                                                   </span>
+                                               {% endif %}
+                                           </div>
+                                       </li>
+                                   {% empty %}
+                                       <li class="list-group-item text-muted">Not shared with anyone yet</li>
+                                   {% endfor %}
+                               </ul>
+                           </div>
+                        </div>
                         </li>
                     </ul>
                 </div>
