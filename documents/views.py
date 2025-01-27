@@ -288,17 +288,14 @@ class DocumentSearchView(LoginRequiredMixin, ListView):
         queryset = Document.objects.filter(owner=self.request.user)
 
         if form.is_valid():
-            # Full-text search
+            # Text search
             query = form.cleaned_data.get('query')
             if query:
-                search_query = SearchQuery(query)
-                # Update search vectors for all documents in the queryset
-                for doc in queryset:
-                    doc.update_search_vector()
-                # Filter and rank results
-                queryset = queryset.filter(search_vector=search_query)\
-                    .annotate(rank=SearchRank('search_vector', search_query))\
-                    .order_by('-rank')
+                queryset = queryset.filter(
+                    Q(title__icontains=query) |
+                    Q(description__icontains=query) |
+                    Q(tags__icontains=query)
+                )
 
             # Category filter
             category = form.cleaned_data.get('category')

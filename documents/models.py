@@ -3,8 +3,7 @@ from django.db import models
 from django.utils import timezone
 from django.urls import reverse
 from django.conf import settings
-from django.contrib.postgres.search import SearchVectorField, SearchVector
-from django.contrib.postgres.indexes import GinIndex
+
 
 class Category(models.Model):
     name = models.CharField(max_length=100)
@@ -36,9 +35,9 @@ class Document(models.Model):
         related_name='documents'
     )
     category = models.ForeignKey(
-        Category, 
-        on_delete=models.SET_NULL, 
-        null=True, 
+        'Category',
+        on_delete=models.SET_NULL,
+        null=True,
         blank=True,
         related_name='documents'
     )
@@ -56,46 +55,15 @@ class Document(models.Model):
     version = models.IntegerField(default=1)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    search_vector = SearchVectorField(null=True)
-    
-    # ... rest of the methods remain the same
 
     class Meta:
-        indexes = [
-            GinIndex(fields=['search_vector'])  # Add GIN index for faster searching
-        ]
-
-    def update_search_vector(self):
-        """Update search vector with document content"""
-        self.search_vector = SearchVector('title', weight='A') + \
-                           SearchVector('description', weight='B') + \
-                           SearchVector('tags', weight='C')
-        self.save(update_fields=['search_vector'])
+        ordering = ['-updated_at']
 
     def __str__(self):
         return self.title
 
     def get_absolute_url(self):
         return reverse('document_detail', kwargs={'pk': self.pk})
-    
-    def get_latest_version(self):
-        return self.versions.first()
-
-    def create_new_version(self, file, notes=''):
-        version = DocumentVersion.objects.create(
-            document=self,
-            file=file,
-            version_number=self.version + 1,
-            notes=notes
-        )
-        self.version = version.version_number
-        self.save()
-        return version
-    
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)
-        # Update search vector after save
-        self.update_search_vector()
 
 class DocumentVersion(models.Model):
     document = models.ForeignKey(Document, on_delete=models.CASCADE, related_name='versions')
