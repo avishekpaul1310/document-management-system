@@ -2,33 +2,74 @@
 {% extends 'base.html' %}
 {% load static %}
 
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-tagsinput@0.7.1/dist/bootstrap-tagsinput.css" rel="stylesheet">
+<style>
+    .bootstrap-tagsinput {
+        width: 100%;
+    }
+    .search-highlight {
+        background-color: #fff3cd;
+        padding: 2px;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
     <div class="row">
+        <!-- Search Filters Sidebar -->
         <div class="col-md-3">
-            <!-- Search Filters Sidebar -->
             <div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">Search Filters</h5>
                 </div>
                 <div class="card-body">
                     <form method="get" id="searchForm">
-                        {% for field in form %}
                         <div class="mb-3">
-                            <label for="{{ field.id_for_label }}" class="form-label">
-                                {{ field.label }}
-                            </label>
-                            {{ field }}
-                            {% if field.help_text %}
-                            <small class="form-text text-muted">{{ field.help_text }}</small>
-                            {% endif %}
+                            <label for="{{ form.query.id_for_label }}" class="form-label">Search</label>
+                            {{ form.query }}
                         </div>
-                        {% endfor %}
+
+                        <div class="mb-3">
+                            <label for="{{ form.category.id_for_label }}" class="form-label">Category</label>
+                            {{ form.category }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                            {{ form.status }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.tags.id_for_label }}" class="form-label">Tags</label>
+                            {{ form.tags }}
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Date Range</label>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ form.date_from }}
+                                    <small class="form-text text-muted">From</small>
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.date_to }}
+                                    <small class="form-text text-muted">To</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.sort_by.id_for_label }}" class="form-label">Sort By</label>
+                            {{ form.sort_by }}
+                        </div>
+
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-search"></i> Search
                             </button>
-                            <a href="{% url 'document_search' %}" class="btn btn-secondary">
+                            <a href="{% url 'document_search' %}" class="btn btn-outline-secondary">
                                 <i class="fas fa-redo"></i> Reset Filters
                             </a>
                         </div>
@@ -37,8 +78,8 @@
             </div>
         </div>
 
+        <!-- Search Results -->
         <div class="col-md-9">
-            <!-- Search Results -->
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Search Results</h5>
@@ -62,9 +103,11 @@
                                 {% for document in documents %}
                                 <tr>
                                     <td>
-                                        <a href="{% url 'document_detail' document.pk %}">
-                                            {{ document.title }}
-                                        </a>
+                                        <a href="{% url 'document_detail' document.pk %}">{{ document.title }}</a>
+                                        {% if document.description %}
+                                        <br>
+                                        <small class="text-muted">{{ document.description|truncatechars:100 }}</small>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         {% if document.category %}
@@ -82,21 +125,21 @@
                                     </td>
                                     <td>
                                         {% if document.tags %}
-                                            {% for tag in document.tags.split %}
-                                                <span class="badge bg-info">{{ tag }}</span>
-                                            {% endfor %}
+                                        {% for tag in document.tags.split %}
+                                        <span class="badge bg-info">{{ tag }}</span>
+                                        {% endfor %}
                                         {% else %}
-                                            <span class="text-muted">-</span>
+                                        <span class="text-muted">-</span>
                                         {% endif %}
                                     </td>
-                                    <td>{{ document.updated_at|date:"Y-m-d H:i" }}</td>
+                                    <td>{{ document.updated_at|date:"Y-m-d H:i:s" }}</td>
                                     <td>
                                         <div class="btn-group">
-                                            <a href="{{ document.file.url }}" class="btn btn-sm btn-primary" target="_blank">
+                                            <a href="{{ document.file.url }}" class="btn btn-sm btn-primary" target="_blank" title="Download">
                                                 <i class="fas fa-download"></i>
                                             </a>
                                             {% if user == document.owner %}
-                                            <a href="{% url 'document_update' document.pk %}" class="btn btn-sm btn-info">
+                                            <a href="{% url 'document_update' document.pk %}" class="btn btn-sm btn-info" title="Edit">
                                                 <i class="fas fa-edit"></i>
                                             </a>
                                             {% endif %}
@@ -114,10 +157,10 @@
                         <ul class="pagination justify-content-center">
                             {% if page_obj.has_previous %}
                             <li class="page-item">
-                                <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">&laquo; First</a>
+                                <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page=1">&laquo; First</a>
                             </li>
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Previous</a>
+                                <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.previous_page_number }}">Previous</a>
                             </li>
                             {% endif %}
 
@@ -129,10 +172,10 @@
 
                             {% if page_obj.has_next %}
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Next</a>
+                                <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.next_page_number }}">Next</a>
                             </li>
                             <li class="page-item">
-                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Last &raquo;</a>
+                                <a class="page-link" href="?{% if request.GET.urlencode %}{{ request.GET.urlencode }}&{% endif %}page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
                             </li>
                             {% endif %}
                         </ul>
@@ -141,10 +184,27 @@
                     {% else %}
                     <div class="text-center py-4">
                         <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                        <h5>No documents found matching your search criteria.</h5>
-                        <p class="text-muted">Try adjusting your search filters or create a new document.</p>
+                        <h5>No documents found matching your search criteria</h5>
+                        <p class="text-muted">Try adjusting your search filters or <a href="{% url 'document_create' %}">create a new document</a>.</p>
                     </div>
                     {% endif %}
+                </div>
+            </div>
+
+            <!-- Current Session Info -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="mb-0">Session Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Current User:</strong> {{ current_user.username }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Current Time (UTC):</strong> {{ current_time|date:"Y-m-d H:i:s" }}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -153,17 +213,29 @@
 {% endblock %}
 
 {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap-tagsinput@0.7.1/dist/bootstrap-tagsinput.min.js"></script>
 <script>
-    $(document).ready(function() {
-        // Initialize tooltips
-        $('[data-toggle="tooltip"]').tooltip();
-
-        // Add form reset confirmation
-        $('.btn-secondary').click(function(e) {
-            if (!confirm('Are you sure you want to reset all filters?')) {
-                e.preventDefault();
-            }
-        });
+$(document).ready(function() {
+    // Initialize Bootstrap Tags Input
+    $('#{{ form.tags.id_for_label }}').tagsinput({
+        trimValue: true,
+        confirmKeys: [13, 44] // Enter and comma
     });
+
+    // Auto-submit form when sort option changes
+    $('#{{ form.sort_by.id_for_label }}').change(function() {
+        $('#searchForm').submit();
+    });
+
+    // Initialize tooltips
+    $('[title]').tooltip();
+
+    // Confirm reset filters
+    $('.btn-outline-secondary').click(function(e) {
+        if (!confirm('Are you sure you want to reset all filters?')) {
+            e.preventDefault();
+        }
+    });
+});
 </script>
 {% endblock %}

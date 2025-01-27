@@ -152,3 +152,68 @@ class DocumentSearchForm(forms.Form):
     def __init__(self, user, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields['category'].queryset = Category.objects.filter(owner=user)
+
+class AdvancedSearchForm(forms.Form):
+    query = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Search by title, description or content...'
+        })
+    )
+    
+    category = forms.ModelChoiceField(
+        queryset=None,  # We'll set this in __init__
+        required=False,
+        empty_label="All Categories",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    status = forms.ChoiceField(
+        choices=[('', 'All Statuses')] + Document.STATUS_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    
+    tags = forms.CharField(
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Search by tags (comma separated)',
+            'data-role': 'tagsinput'  # For Bootstrap Tags Input
+        })
+    )
+    
+    date_from = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        })
+    )
+    
+    date_to = forms.DateField(
+        required=False,
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        })
+    )
+    
+    sort_by = forms.ChoiceField(
+        choices=[
+            ('-updated_at', 'Most Recent'),
+            ('title', 'Title (A-Z)'),
+            ('-title', 'Title (Z-A)'),
+            ('-created_at', 'Creation Date'),
+            ('category', 'Category'),
+        ],
+        required=False,
+        initial='-updated_at',
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
+    def __init__(self, user, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Set category queryset to user's categories
+        self.fields['category'].queryset = Category.objects.filter(owner=user)

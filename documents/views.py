@@ -8,10 +8,11 @@ from django.db.models import Q
 from django.http import FileResponse
 from django.utils.decorators import method_decorator
 from .models import Document, DocumentVersion,Category
-from .forms import DocumentForm, DocumentVersionForm, CategoryForm, DocumentSearchForm
+from .forms import DocumentForm, DocumentVersionForm, CategoryForm, DocumentSearchForm, AdvancedSearchForm
 from .decorators import user_is_document_owner
 import os
-from django.contrib.postgres.search import SearchQuery, SearchRank
+from django.contrib.postgres.search import SearchQuery, SearchRank, SearchVector
+from django.utils import timezone
 
 class DocumentListView(LoginRequiredMixin, ListView):
     model = Document
@@ -271,26 +272,32 @@ class DocumentSearchView(LoginRequiredMixin, ListView):
     template_name = 'documents/document_search.html'
     context_object_name = 'documents'
     paginate_by = 10
-
+    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['form'] = DocumentSearchForm(
+        context['form'] = AdvancedSearchForm(
             self.request.user,
             initial=self.request.GET
         )
+        context['current_time'] = timezone.now()
+        context['current_user'] = self.request.user
         return context
-
+    
     def get_queryset(self):
+        form = AdvancedSearchForm(self.request.user, self.request.GET)
         queryset = Document.objects.filter(owner=self.request.user)
-        form = DocumentSearchForm(self.request.user, self.request.GET)
 
         if form.is_valid():
             # Full-text search
-            q = form.cleaned_data.get('q')
-            if q:
-                query = SearchQuery(q)
-                queryset = queryset.filter(search_vector=query)\
-                    .annotate(rank=SearchRank('search_vector', query))\
+            query = form.cleaned_data.get('query')
+            if query:
+                search_query = SearchQuery(query)
+                # Update search vectors for all documents in the queryset
+                for doc in queryset:
+                    doc.update_search_vector()
+                # Filter and rank results
+                queryset = queryset.filter(search_vector=search_query)\
+                    .annotate(rank=SearchRank('search_vector', search_query))\
                     .order_by('-rank')
 
             # Category filter
@@ -303,22 +310,27 @@ class DocumentSearchView(LoginRequiredMixin, ListView):
             if status:
                 queryset = queryset.filter(status=status)
 
-            # Tag-based search
+            # Tags filter
             tags = form.cleaned_data.get('tags')
             if tags:
                 tag_list = [tag.strip() for tag in tags.split(',')]
-                tag_query = Q()
+                tag_q = Q()
                 for tag in tag_list:
-                    tag_query |= Q(tags__icontains=tag)
-                queryset = queryset.filter(tag_query)
+                    tag_q |= Q(tags__icontains=tag)
+                queryset = queryset.filter(tag_q)
 
             # Date range filter
-            created_after = form.cleaned_data.get('created_after')
-            if created_after:
-                queryset = queryset.filter(created_at__date__gte=created_after)
+            date_from = form.cleaned_data.get('date_from')
+            if date_from:
+                queryset = queryset.filter(created_at__date__gte=date_from)
 
-            created_before = form.cleaned_data.get('created_before')
-            if created_before:
-                queryset = queryset.filter(created_at__date__lte=created_before)
+            date_to = form.cleaned_data.get('date_to')
+            if date_to:
+                queryset = queryset.filter(created_at__date__lte=date_to)
+
+            # Sorting
+            sort_by = form.cleaned_data.get('sort_by')
+            if sort_by:
+                queryset = queryset.order_by(sort_by)
 
         return queryset.distinct()
