@@ -226,7 +226,12 @@ class ShareDocumentForm(forms.ModelForm):
         model = SharedDocument
         fields = ['shared_with', 'permission', 'valid_until']
         widgets = {
-            'valid_until': forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+            'valid_until': forms.DateTimeInput(
+                attrs={'type': 'datetime-local'},
+                format='%Y-%m-%dT%H:%M'
+            ),
+            'shared_with': forms.Select(attrs={'class': 'form-select'}),
+            'permission': forms.Select(attrs={'class': 'form-select'}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -241,7 +246,7 @@ class ShareDocumentForm(forms.ModelForm):
         )
         self.fields['shared_with'].queryset = User.objects.exclude(
             id__in=exclude_users
-        )
+        ).order_by('username')
 
         # Set permission choices based on user's permission level
         if self.user != self.document.owner:
@@ -251,3 +256,9 @@ class ShareDocumentForm(forms.ModelForm):
                     (p.value, p.label) for p in DocumentPermission 
                     if DocumentPermission(p.value).value <= user_permission
                 ]
+
+    def clean_valid_until(self):
+        valid_until = self.cleaned_data.get('valid_until')
+        if valid_until and valid_until <= timezone.now():
+            raise forms.ValidationError("The expiration date must be in the future")
+        return valid_until

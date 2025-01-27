@@ -2,6 +2,12 @@
 from django.urls import path
 from . import views
 from .views.sharing import SharedDocumentListView, ShareDocumentView
+from .views import (
+    DocumentListView, DocumentDetailView, DocumentCreateView,
+    DocumentUpdateView, DocumentDeleteView, DocumentDownloadView,
+    CategoryListView, CategoryDetailView, CategoryCreateView,
+    CategoryUpdateView, CategoryDeleteView
+)
 
 urlpatterns = [
     # Existing document URLs
