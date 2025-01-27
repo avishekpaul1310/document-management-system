@@ -130,7 +130,7 @@
                                 </p>
                                 <p class="mb-0">
                                     <strong><i class="fas fa-clock"></i> Current Time (UTC):</strong><br>
-                                    2025-01-27 15:24:02
+                                    {{ current_time|date:"Y-m-d H:i:s" }}
                                 </p>
                             </div>
                         </div>
@@ -186,6 +186,27 @@
             });
         }, 5000);
     </script>
-    {% block extra_js %}{% endblock %}
+    {% block extra_js %}
+    
+    <script>
+        // Update current time every second
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.getUTCFullYear() + '-' + 
+                              String(now.getUTCMonth() + 1).padStart(2, '0') + '-' + 
+                              String(now.getUTCDate()).padStart(2, '0') + ' ' + 
+                              String(now.getUTCHours()).padStart(2, '0') + ':' + 
+                              String(now.getUTCMinutes()).padStart(2, '0') + ':' + 
+                              String(now.getUTCSeconds()).padStart(2, '0');
+            document.querySelector('.session-info .mb-0').innerHTML = 
+                '<strong><i class="fas fa-clock"></i> Current Time (UTC):</strong><br>' + timeString;
+        }
+        
+        // Update time immediately and then every second
+        updateTime();
+        setInterval(updateTime, 1000);
+    </script>
+    
+    {% endblock %}
 </body>
 </html>
