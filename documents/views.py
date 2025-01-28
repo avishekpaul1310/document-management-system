@@ -11,6 +11,7 @@ from .forms import DocumentForm, DocumentVersionForm, CategoryForm, AdvancedSear
 import os
 from django.utils import timezone
 from .mixins import DocumentAccessLogMixin
+from django.core.exceptions import PermissionDenied
 
 class DocumentListView(LoginRequiredMixin, ListView):
     model = Document
@@ -57,6 +58,13 @@ class DocumentDetailView(LoginRequiredMixin, DocumentAccessLogMixin, DetailView)
     template_name = 'documents/document_detail.html'
     context_object_name = 'document'
 
+    def get_object(self, queryset=None):
+        obj = super().get_object(queryset)
+        if not obj.can_user_access(self.request.user, DocumentPermission.VIEW):
+            raise PermissionDenied("You don't have permission to view this document.")
+        return obj
+    
+    
     def get_queryset(self):
         # Include documents shared with the user as well as owned documents
         base_queryset = Document.objects.filter(
@@ -69,7 +77,7 @@ class DocumentDetailView(LoginRequiredMixin, DocumentAccessLogMixin, DetailView)
         context = super().get_context_data(**kwargs)
         context['versions'] = self.object.versions.all().order_by('-version_number')
         context['version_form'] = DocumentVersionForm()
-        context['current_time'] = "2025-01-27 23:06:17"
+        context['current_time'] = "2025-01-27 23:44:34"
         context['current_user'] = "avishekpaul1310"
         # Add access permission level for the current user
         context['user_permission'] = self.object.get_user_permission(self.request.user)

@@ -145,23 +145,26 @@ class Document(models.Model):
         except SharedDocument.DoesNotExist:
             return None
 
-    def can_user_access(self, user, required_permission=DocumentPermission.VIEW_ONLY):
-        """Check if a user has at least the required permission level"""
+    def can_user_access(self, user, permission_level):
+        """Check if user has the required permission level for this document."""
         if user == self.owner:
             return True
-        
-        permission = self.get_user_permission(user)
-        if not permission:
+            
+        share = self.shares.filter(shared_with=user, is_active=True).first()
+        if not share:
             return False
 
-        permission_levels = {
-            DocumentPermission.VIEW_ONLY: 0,
+        permission_hierarchy = {
+            DocumentPermission.VIEW: 0,
             DocumentPermission.COMMENT: 1,
             DocumentPermission.EDIT: 2,
             DocumentPermission.MANAGE: 3
         }
 
-        return permission_levels[permission] >= permission_levels[required_permission]
+        required_level = permission_hierarchy.get(permission_level, 0)
+        user_level = permission_hierarchy.get(share.permission, 0)
+
+        return user_level >= required_level
     
     title = models.CharField(max_length=200)
     description = models.TextField(blank=True)
