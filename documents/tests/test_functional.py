@@ -1,14 +1,15 @@
 # documents/tests/test_functional.py
 from django.contrib.staticfiles.testing import StaticLiveServerTestCase
-from selenium.webdriver.chrome.webdriver import WebDriver
+from selenium import webdriver  # Updated import
 from selenium.webdriver.common.by import By
 from django.contrib.auth.models import User
+from documents.models import Document  # Add this import
 
 class DocumentManagementTest(StaticLiveServerTestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.selenium = WebDriver()
+        cls.selenium = webdriver.Chrome()  # Updated Chrome webdriver initialization
         cls.selenium.implicitly_wait(10)
 
     @classmethod

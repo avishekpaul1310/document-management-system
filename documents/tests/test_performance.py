@@ -3,6 +3,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.test.client import Client
+from documents.models import Document  # Add this import
 import time
 
 class PerformanceTests(TestCase):

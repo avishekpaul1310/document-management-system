@@ -2,7 +2,8 @@
 from django.test import TestCase, Client
 from django.urls import reverse
 from django.contrib.auth.models import User
-from documents.models import Document, Category
+from documents.models import Document, DocumentPermission  # Updated import
+from documents.models import Category
 
 class DocumentViewTests(TestCase):
     def setUp(self):
