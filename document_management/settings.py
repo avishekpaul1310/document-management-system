@@ -83,6 +83,13 @@ DATABASES = {
     }
 }
 
+if 'test' in sys.argv:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': ':memory:'
+        }
+    }
 
 # Add after line 84 (after DATABASES configuration)
 
