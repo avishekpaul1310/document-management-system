@@ -49,8 +49,8 @@ class DocumentListView(LoginRequiredMixin, ListView):
         context['current_status'] = self.request.GET.get('status', 'ALL')
         context['status_choices'] = Document.STATUS_CHOICES
         context['document'] = Document.objects.get(pk=self.kwargs['pk'])
-        context['current_time'] = "2025-01-27 23:30:43"  # Update this
-        context['current_user'] = "avishekpaul1310"
+        context['current_time'] = timezone.now().strftime('%Y-%m-%d %H:%M:%S')  # Dynamic timestamp
+        context['current_user'] = self.request.user.username  # Dynamic username
         return context
 
 class DocumentDetailView(LoginRequiredMixin, DocumentAccessLogMixin, DetailView):
@@ -77,8 +77,8 @@ class DocumentDetailView(LoginRequiredMixin, DocumentAccessLogMixin, DetailView)
         context = super().get_context_data(**kwargs)
         context['versions'] = self.object.versions.all().order_by('-version_number')
         context['version_form'] = DocumentVersionForm()
-        context['current_time'] = "2025-01-27 23:44:34"
-        context['current_user'] = "avishekpaul1310"
+        context['current_time'] = timezone.now().strftime('%Y-%m-%d %H:%M:%S')  # Dynamic timestamp
+        context['current_user'] = self.request.user.username  # Dynamic username
         # Add access permission level for the current user
         context['user_permission'] = self.object.get_user_permission(self.request.user)
         return context
@@ -396,6 +396,6 @@ class DocumentAccessLogView(LoginRequiredMixin, UserPassesTestMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['document'] = Document.objects.get(pk=self.kwargs['pk'])
-        context['current_time'] = "2025-01-27 22:38:02"
-        context['current_user'] = "avishekpaul1310"
+        context['current_time'] = timezone.now().strftime('%Y-%m-%d %H:%M:%S')  # Dynamic timestamp
+        context['current_user'] = self.request.user.username  # Dynamic username
         return context
