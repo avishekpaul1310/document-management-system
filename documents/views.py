@@ -6,20 +6,11 @@ from .forms import DocumentForm
 
 @login_required
 def document_list(request):
-    category_id = request.GET.get('category')
-    if category_id:
-        documents = Document.objects.filter(
-            owner=request.user,
-            category_id=category_id
-        )
-    else:
-        documents = Document.objects.filter(owner=request.user)
-    
+    documents = Document.objects.filter(owner=request.user)
     categories = Category.objects.all()
     return render(request, 'documents/document_list.html', {
         'documents': documents,
-        'categories': categories,
-        'current_category': category_id
+        'categories': categories
     })
 
 @login_required
