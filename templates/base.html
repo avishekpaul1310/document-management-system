@@ -2,13 +2,13 @@
 <html>
 <head>
     <title>Document Management System</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="{{ STATIC_URL }}css/style.css">
 </head>
 <body>
     <nav>
         <div class="nav-left">
-            <a href="{% url 'document_list' %}">Documents</a>
-            <a href="{% url 'document_upload' %}">Upload</a>
+            <a href="{% url 'documents:document_list' %}">Documents</a>
+            <a href="{% url 'documents:document_upload' %}">Upload</a>
         </div>
         <div class="nav-right">
             {% if user.is_authenticated %}
