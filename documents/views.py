@@ -6,11 +6,20 @@ from .forms import DocumentForm
 
 @login_required
 def document_list(request):
-    documents = Document.objects.filter(owner=request.user)
+    category_id = request.GET.get('category')
+    if category_id:
+        documents = Document.objects.filter(
+            owner=request.user,
+            category_id=category_id
+        )
+    else:
+        documents = Document.objects.filter(owner=request.user)
+    
     categories = Category.objects.all()
     return render(request, 'documents/document_list.html', {
         'documents': documents,
-        'categories': categories
+        'categories': categories,
+        'current_category': category_id
     })
 
 @login_required
@@ -29,8 +38,11 @@ def document_upload(request):
 
 @login_required
 def document_detail(request, pk):
-    document = get_object_or_404(Document, pk=pk, owner=request.user)
-    return render(request, 'documents/document_detail.html', {'document': document})
+    document = get_object_or_404(Document, pk=pk)
+    if document.owner == request.user or document.is_shared:
+        return render(request, 'documents/document_detail.html', {'document': document})
+    messages.error(request, 'You do not have permission to view this document.')
+    return redirect('documents:document_list')
 
 @login_required
 def document_delete(request, pk):
@@ -38,5 +50,4 @@ def document_delete(request, pk):
     if request.method == 'POST':
         document.delete()
         messages.success(request, 'Document deleted successfully!')
-        return redirect('documents:document_list')
-    return render(request, 'documents/document_confirm_delete.html', {'document': document})
+    return redirect('documents:document_list')
