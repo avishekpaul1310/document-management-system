@@ -1,14 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .models import Document, Category
-from .forms import DocumentForm
 from django.http import JsonResponse
 from django.core.exceptions import PermissionDenied
+from django.contrib.auth.models import User  # Add this line
 from .models import (
     Document, Category, SharedDocument, 
     DocumentAccessHistory, Comment, Annotation
 )
+from .forms import DocumentForm
 
 def check_document_permission(user, document, required_level):
     if user == document.owner:
